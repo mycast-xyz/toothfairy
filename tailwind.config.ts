@@ -8,6 +8,9 @@ export default {
 
 	darkMode: 'class',
 	theme: {
+		color: {
+			hotpink: '#ff69b4'
+		},
 		extend: {}
 	},
 

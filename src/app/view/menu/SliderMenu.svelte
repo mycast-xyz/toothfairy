@@ -60,7 +60,7 @@
 
 			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
 
-			<h3 class="ml-2 text-lg font-medium text-gray-500">마스터치과기공소</h3>
+			<h3 class="ml-2 text-sm font-medium text-gray-500">마스터치과기공소</h3>
 			<li>
 				<a
 					href="requestlist"
@@ -128,7 +128,7 @@
 
 			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
 
-			<h3 class="ml-2 text-lg font-medium text-gray-500">공백기공센터</h3>
+			<h3 class="ml-2 text-sm font-medium text-gray-500">공백기공센터</h3>
 
 			<li>
 				<a
