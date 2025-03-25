@@ -17,7 +17,7 @@ export const load: PageLoad = async ({ url }) => {
 		.get(currentUrl + '/api/v0/game/list')
 		.then((res) => {
 			if (res.data.resultCode === 200) {
-				data = res.data.items;
+				data = res.data.item;
 			} else {
 				console.log('err: 서버 코드 에러');
 			}

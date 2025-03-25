@@ -1,8 +1,11 @@
 <script lang="ts">
 	// 캘린더 처리용 DatePicker
-
+	import type { PageData } from './$types';
 	import { writable } from 'svelte/store';
 
+	const { data } = $props<{ data: any }>();
+
+	// 날짜 설정에 대한 처리
 	const today = new Date();
 	const currentYear = today.getFullYear();
 	const currentMonth = today.getMonth() + 1; // 월은 0부터 시작하므로 1을 더해줍니다.
@@ -11,7 +14,6 @@
 	let selectedYear = writable(years[0]);
 	let selectedMonth = writable(currentMonth);
 
-	$: console.log($selectedYear);
 	function changeYear(direction: 'prev' | 'next') {
 		selectedYear.update((currentYear) => {
 			const currentIndex = years.indexOf(currentYear);
@@ -33,7 +35,182 @@
 		selectedMonth.set(month);
 	}
 
+	// 정렬 처리
+	let currentSort = writable({
+		column: data.info,
+		direction: 'asc',
+		isAsc: {
+			date: true,
+			company: true,
+			type: true,
+			fileCount: true,
+			unitCount: true,
+			fileName: true
+		}
+	});
+
+	$effect(() => {
+		console.log(currentSort);
+	});
+
+	function handleSort(column: string) {
+		let sortFunction;
+
+		switch (column) {
+			case 'date':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, date: !sort.isAsc.date }
+				}));
+				sortFunction = (a: any, b: any) => {
+					return $currentSort.isAsc.date
+						? new Date(a.folderName.date).getTime() - new Date(b.folderName.date).getTime()
+						: new Date(b.folderName.date).getTime() - new Date(a.folderName.date).getTime();
+				};
+				break;
+			case 'company':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, company: !sort.isAsc.company }
+				}));
+				sortFunction = (a: any, b: any) => {
+					return $currentSort.isAsc.company
+						? a.folderName.parts[1].localeCompare(b.folderName.parts[1])
+						: b.folderName.parts[1].localeCompare(a.folderName.parts[1]);
+				};
+				break;
+			case 'type':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, type: !sort.isAsc.type }
+				}));
+				sortFunction = (a: any, b: any) => {
+					return $currentSort.isAsc.type
+						? a.folderName.info.localeCompare(b.folderName.info)
+						: b.folderName.info.localeCompare(a.folderName.info);
+				};
+				break;
+			case 'fileCount':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, fileCount: !sort.isAsc.fileCount }
+				}));
+				sortFunction = (a: any, b: any) => {
+					return $currentSort.isAsc.fileCount
+						? a.remakeCount.ok + a.remakeCount.re - (b.remakeCount.ok + b.remakeCount.re)
+						: b.remakeCount.ok + b.remakeCount.re - (a.remakeCount.ok + a.remakeCount.re);
+				};
+				break;
+			case 'unitCount':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, unitCount: !sort.isAsc.unitCount }
+				}));
+				sortFunction = (a: any, b: any) => {
+					if (a.folderName.info === 'cap' && b.folderName.info === 'cap') {
+						return 0;
+					} else if (a.folderName.info === 'cap') {
+						return $currentSort.isAsc.unitCount ? -1 : 1;
+					} else if (b.folderName.info === 'cap') {
+						return $currentSort.isAsc.unitCount ? 1 : -1;
+					}
+					return $currentSort.isAsc.unitCount
+						? a.remakeCount.ok + a.remakeCount.re - (b.remakeCount.ok + b.remakeCount.re)
+						: b.remakeCount.ok + b.remakeCount.re - (a.remakeCount.ok + a.remakeCount.re);
+				};
+				break;
+			case 'fileName':
+				currentSort.update((sort) => ({
+					...sort,
+					isAsc: { ...sort.isAsc, fileName: !sort.isAsc.fileName }
+				}));
+				sortFunction = (a: any, b: any) => {
+					if (!a.files || !b.files) return 0;
+					return $currentSort.isAsc.fileName
+						? a.files[0].localeCompare(b.files[0])
+						: b.files[0].localeCompare(a.files[0]);
+				};
+				break;
+			default:
+				return;
+		}
+
+		if ($currentSort.column === column) {
+			// 같은 컬럼을 다시 클릭하면 정렬 방향을 반대로
+			currentSort.update((sort) => ({
+				...sort,
+				direction: sort.direction === 'asc' ? 'desc' : 'asc'
+			}));
+		} else {
+			// 새로운 컬럼 클릭시 오름차순으로 시작
+			currentSort.update((sort) => ({ ...sort, column: column, direction: 'asc' }));
+		}
+
+		$currentSort.column = [...data.info].sort((a, b) => {
+			const result = sortFunction(a, b);
+			return $currentSort.direction === 'asc' ? result : -result;
+		});
+	}
+
 	let dateSelectisOpen = false;
+
+	// 출력물 종류 처리
+	function getColorAndName(info: any) {
+		let color = '';
+		let name = '';
+
+		if (info === 'cap') {
+			color = 'bg-gray-100/60 text-gray-500 dark:bg-gray-800';
+			name = '캡';
+		} else if (info === 'partial') {
+			color = 'bg-emerald-100/60 text-emerald-500 dark:bg-gray-800';
+			name = '파샬';
+		} else if (info === 'custom') {
+			color = 'bg-amber-100/60 text-amber-500 dark:bg-gray-800';
+			name = '커스텀';
+		} else if (info === 'allonfour') {
+			color = 'bg-pink-100/60 text-pink-500 dark:bg-gray-800';
+			name = '올온포';
+		}
+
+		return { color, name };
+	}
+
+	// 파일 정보 처리
+	function getFileInfo(fileName: any, sender: string) {
+		let result = {
+			name: fileName,
+			sender: sender,
+			types: [] as string[]
+		};
+		// 이레, 남원, 남원이레인 경우 2번과 0이 아닌 숫자 포함
+		if (sender === '이레' || sender === '남원' || sender === '남원이레') {
+			fileName.forEach((file) => {
+				const parts = file.split('_').filter((item: string) => item.length > 0);
+				if (parts.length >= 3) {
+					result.types.push(parts[2]);
+				}
+			});
+		} else if (sender === '이정' || sender === '이정pa' || sender === '이정 pa') {
+			fileName.forEach((file) => {
+				const parts = file.split('_').filter((item: string) => item.length > 0);
+				if (parts.length >= 3) {
+					const combinedPart = (parts[0] + '_' + parts[1]).replace(/[0-9]/g, '');
+
+					const filePart = file;
+					if (
+						['re', '리메이크', '리메'].some((keyword) => filePart.toLowerCase().includes(keyword))
+					) {
+						result.types.push(combinedPart + '(re)');
+					} else {
+						result.types.push(combinedPart);
+					}
+				}
+			});
+		}
+
+		return result;
+	}
 </script>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
@@ -149,50 +326,88 @@
 		</nav>
 		<article class="print-list">
 			<div class="mt-6 flex flex-col">
-				<div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-						<div class="overflow-hidden border border-gray-200 dark:border-gray-700 md:rounded-lg">
+						<div
+							class=" overflow-auto border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg"
+						>
 							<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 								<thead class="bg-gray-50 dark:bg-gray-800">
 									<tr>
 										<th
 											scope="col"
-											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('date')}
 										>
 											<span>날짜</span>
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.date}
+												class:ri-sort-desc={!$currentSort.isAsc.date}
+											></i>
 										</th>
 										<th
 											scope="col"
-											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('company')}
 										>
 											<span>회사</span>
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.company}
+												class:ri-sort-desc={!$currentSort.isAsc.company}
+											></i>
 										</th>
 										<th
 											scope="col"
-											class="px-12 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-12 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('type')}
 										>
 											출력물 종류
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.type}
+												class:ri-sort-desc={!$currentSort.isAsc.type}
+											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('fileCount')}
 										>
-											출럭 파일 갯수
+											출력 파일 갯수
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.fileCount}
+												class:ri-sort-desc={!$currentSort.isAsc.fileCount}
+											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('unitCount')}
 										>
 											출력 유닛 갯수
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.unitCount}
+												class:ri-sort-desc={!$currentSort.isAsc.unitCount}
+											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											onclick={() => handleSort('fileName')}
 										>
 											파일 명
+											<i
+												class="float-right ml-auto"
+												class:ri-sort-asc={$currentSort.isAsc.fileName}
+												class:ri-sort-desc={!$currentSort.isAsc.fileName}
+											></i>
 										</th>
 
 										<th scope="col" class="relative px-4 py-3.5">
@@ -203,250 +418,90 @@
 								<tbody
 									class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
 								>
-									<tr>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">2025-02-04</h2>
-												<p class="text-sm font-normal text-gray-600 dark:text-gray-400">월요일</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">이정</h2>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
-											<div
-												class="inline gap-x-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-normal text-gray-500 dark:bg-gray-800 dark:text-gray-400"
-											>
-												캡
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 15</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 10개, 리메이크 : 5개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 30</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 20개, 리메이크 : 10개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm"> </td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<button
-												class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
-											>
-												<i class="ri-more-2-line text-lg"></i>
-											</button>
-										</td>
-									</tr>
-									<tr>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">2025-02-04</h2>
-												<p class="text-sm font-normal text-gray-600 dark:text-gray-400">월요일</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">이정</h2>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
-											<div
-												class="inline gap-x-2 rounded-full bg-emerald-100/60 px-3 py-1 text-sm font-normal text-emerald-500 dark:bg-gray-800"
-											>
-												파샬
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 15</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 10개, 리메이크 : 5개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 30</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 20개, 리메이크 : 10개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<p class="max-w-64 font-normal text-gray-500 dark:text-gray-400">
-												차헌영_상악, 차헌역_하악, 이병구_상악, 이병구_하악
-											</p>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<button
-												class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
-											>
-												<i class="ri-more-2-line text-lg"></i>
-											</button>
-										</td>
-									</tr>
-									<tr>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">2025-02-04</h2>
-												<p class="text-sm font-normal text-gray-600 dark:text-gray-400">월요일</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">이정</h2>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
-											<div
-												class="inline gap-x-2 rounded-full bg-amber-100/60 px-3 py-1 text-sm font-normal text-amber-500 dark:bg-gray-800"
-											>
-												커스텀
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 15</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 10개, 리메이크 : 5개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 30</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 20개, 리메이크 : 10개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<p class="max-w-64 font-normal text-gray-500 dark:text-gray-400">
-												차헌영_상악, 차헌역_하악, 이병구_상악, 이병구_하악
-											</p>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<button
-												class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
-											>
-												<i class="ri-more-2-line text-lg"></i>
-											</button>
-										</td>
-									</tr>
-									<tr>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">2025-02-04</h2>
-												<p class="text-sm font-normal text-gray-600 dark:text-gray-400">월요일</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-											<div>
-												<h2 class="font-medium text-gray-800 dark:text-white">이정</h2>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
-											<div
-												class="inline gap-x-2 rounded-full bg-pink-100/60 px-3 py-1 text-sm font-normal text-pink-500 dark:bg-gray-800"
-											>
-												올온포
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 15</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 10개, 리메이크 : 5개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<div>
-												<h4 class="text-gray-700 dark:text-gray-200">총합 : 30</h4>
-												<p class="font-normal text-gray-500 dark:text-gray-400">
-													정상 : 20개, 리메이크 : 10개
-												</p>
-											</div>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<p class="max-w-64 font-normal text-gray-500 dark:text-gray-400">
-												차헌영_상악, 차헌역_하악, 이병구_상악, 이병구_하악
-											</p>
-										</td>
-										<td class="whitespace-nowrap px-4 py-4 text-sm">
-											<button
-												class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
-											>
-												<i class="ri-more-2-line text-lg"></i>
-											</button>
-										</td>
-									</tr>
+									{#each $currentSort.column as item}
+										<tr>
+											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
+												<div>
+													<h2 class="font-medium text-gray-800 dark:text-white">
+														{item.folderName.date}
+													</h2>
+													<p class="text-sm font-normal text-gray-600 dark:text-gray-400">
+														{new Date(item.folderName.date)
+															.toLocaleDateString('ko-KR', { weekday: 'long' })
+															.slice(0, 1)}요일
+													</p>
+												</div>
+											</td>
+											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
+												<div>
+													<h2 class="font-medium text-gray-800 dark:text-white">
+														{item.folderName.parts[1]}
+													</h2>
+												</div>
+											</td>
+											<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
+												<div
+													class={`inline gap-x-2 rounded-full ${getColorAndName(item.folderName.info).color} px-3 py-1 text-sm font-normal`}
+												>
+													{getColorAndName(item.folderName.info).name}
+												</div>
+											</td>
+											<td class="whitespace-nowrap px-4 py-4 text-sm">
+												<div>
+													<h4 class="text-gray-700 dark:text-gray-200">
+														총합 : {item.remakeCount.ok + item.remakeCount.re}
+													</h4>
+													<p class="font-normal text-gray-500 dark:text-gray-400">
+														정상 : {item.remakeCount.ok}개, 리메이크 : {item.remakeCount.re}개
+													</p>
+												</div>
+											</td>
+											<td class="whitespace-nowrap px-4 py-4 text-sm">
+												{#if item.folderName.info === 'cap'}
+													<div>
+														<h4 class="text-gray-700 dark:text-gray-200">총합 : 수정필요</h4>
+														<p class="font-normal text-gray-500 dark:text-gray-400">
+															정상 : "수정"개, 리메이크 : "수정"개
+														</p>
+													</div>
+												{:else}
+													<div>
+														<h4 class="text-gray-700 dark:text-gray-200">
+															총합 : {item.remakeCount.ok + item.remakeCount.re}
+														</h4>
+														<p class="font-normal text-gray-500 dark:text-gray-400">
+															정상 : {item.remakeCount.ok}개, 리메이크 : {item.remakeCount.re}개
+														</p>
+													</div>
+												{/if}
+											</td>
+											<td class="whitespace-nowrap px-4 py-4 text-sm">
+												{#if item.folderName.info === 'partial'}
+													<p
+														class="max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
+													>
+														{#each getFileInfo(item.files, item.folderName.parts[1]).types as type, i}
+															{type}{i <
+															getFileInfo(item.files, item.folderName.parts[1]).types.length - 1
+																? ', '
+																: ''}
+														{/each}
+													</p>
+												{/if}
+											</td>
+											<td class="whitespace-nowrap px-4 py-4 text-sm">
+												<button
+													class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
+												>
+													<i class="ri-more-2-line text-lg"></i>
+												</button>
+											</td>
+										</tr>
+									{/each}
 								</tbody>
 							</table>
 						</div>
 					</div>
-				</div>
-			</div>
-
-			<div class="mt-6 sm:flex sm:items-center sm:justify-between">
-				<div class="text-sm text-gray-500 dark:text-gray-400">
-					Page <span class="font-medium text-gray-700 dark:text-gray-100">1 of 10</span>
-				</div>
-
-				<div class="mt-4 flex items-center gap-x-4 sm:mt-0">
-					<a
-						href="#"
-						class="flex w-1/2 items-center justify-center gap-x-2 rounded-md border bg-white px-5 py-2 text-sm capitalize text-gray-700 transition-colors duration-200 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 sm:w-auto"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke-width="1.5"
-							stroke="currentColor"
-							class="h-5 w-5 rtl:-scale-x-100"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M6.75 15.75L3 12m0 0l3.75-3.75M3 12h18"
-							/>
-						</svg>
-
-						<span> previous </span>
-					</a>
-
-					<a
-						href="#"
-						class="flex w-1/2 items-center justify-center gap-x-2 rounded-md border bg-white px-5 py-2 text-sm capitalize text-gray-700 transition-colors duration-200 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 sm:w-auto"
-					>
-						<span> Next </span>
-
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke-width="1.5"
-							stroke="currentColor"
-							class="h-5 w-5 rtl:-scale-x-100"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3"
-							/>
-						</svg>
-					</a>
 				</div>
 			</div>
 		</article>
