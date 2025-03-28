@@ -2,6 +2,7 @@
 	// 캘린더 처리용 DatePicker
 	import type { PageData } from './$types';
 	import { writable } from 'svelte/store';
+	import { goto } from '$app/navigation';
 
 	const { data } = $props<{ data: any }>();
 
@@ -178,21 +179,31 @@
 
 	// 파일 정보 처리
 	function getFileInfo(fileName: any, sender: string) {
+		// remakeFiles 객체에서 re와 ok 배열을 합쳐서 하나의 배열로 만듦
+		let allFiles = [];
+		if (fileName && typeof fileName === 'object') {
+			if (fileName.re && Array.isArray(fileName.re)) {
+				allFiles = allFiles.concat(fileName.re);
+			}
+			if (fileName.ok && Array.isArray(fileName.ok)) {
+				allFiles = allFiles.concat(fileName.ok);
+			}
+		}
 		let result = {
-			name: fileName,
+			name: allFiles,
 			sender: sender,
 			types: [] as string[]
 		};
 		// 이레, 남원, 남원이레인 경우 2번과 0이 아닌 숫자 포함
 		if (sender === '이레' || sender === '남원' || sender === '남원이레') {
-			fileName.forEach((file) => {
+			allFiles.forEach((file) => {
 				const parts = file.split('_').filter((item: string) => item.length > 0);
 				if (parts.length >= 3) {
 					result.types.push(parts[2]);
 				}
 			});
 		} else if (sender === '이정' || sender === '이정pa' || sender === '이정 pa') {
-			fileName.forEach((file) => {
+			allFiles.forEach((file) => {
 				const parts = file.split('_').filter((item: string) => item.length > 0);
 				if (parts.length >= 3) {
 					const combinedPart = (parts[0] + '_' + parts[1]).replace(/[0-9]/g, '');
@@ -210,6 +221,11 @@
 		}
 
 		return result;
+	}
+
+	function handleRowClick(item: any) {
+		console.log(item);
+		goto('/void/show/' + item);
 	}
 </script>
 
@@ -419,14 +435,14 @@
 									class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
 								>
 									{#each $currentSort.column as item}
-										<tr>
+										<tr onclick={() => handleRowClick(item.id)}>
 											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
 												<div>
 													<h2 class="font-medium text-gray-800 dark:text-white">
-														{item.folderName.date}
+														{item.printDate}
 													</h2>
 													<p class="text-sm font-normal text-gray-600 dark:text-gray-400">
-														{new Date(item.folderName.date)
+														{new Date(item.printDate)
 															.toLocaleDateString('ko-KR', { weekday: 'long' })
 															.slice(0, 1)}요일
 													</p>
@@ -435,54 +451,57 @@
 											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
 												<div>
 													<h2 class="font-medium text-gray-800 dark:text-white">
-														{item.folderName.parts[1]}
+														{item.corpName}
 													</h2>
 												</div>
 											</td>
 											<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
 												<div
-													class={`inline gap-x-2 rounded-full ${getColorAndName(item.folderName.info).color} px-3 py-1 text-sm font-normal`}
+													class={`inline gap-x-2 rounded-full ${getColorAndName(item.info).color} px-3 py-1 text-sm font-normal`}
 												>
-													{getColorAndName(item.folderName.info).name}
+													{getColorAndName(item.info).name}
 												</div>
 											</td>
 											<td class="whitespace-nowrap px-4 py-4 text-sm">
 												<div>
 													<h4 class="text-gray-700 dark:text-gray-200">
-														총합 : {item.remakeCount.ok + item.remakeCount.re}
+														총합 : {item.normalFileNum + item.remakeFileNum}
 													</h4>
 													<p class="font-normal text-gray-500 dark:text-gray-400">
-														정상 : {item.remakeCount.ok}개, 리메이크 : {item.remakeCount.re}개
+														정상 : {item.normalFileNum}개, 리메이크 : {item.remakeFileNum}개
 													</p>
 												</div>
 											</td>
 											<td class="whitespace-nowrap px-4 py-4 text-sm">
-												{#if item.folderName.info === 'cap'}
+												{#if item.info === 'cap'}
 													<div>
-														<h4 class="text-gray-700 dark:text-gray-200">총합 : 수정필요</h4>
+														<h4 class="text-gray-700 dark:text-gray-200">
+															총합 : {item.normalUnitNum + item.remakeUnitNum}
+														</h4>
 														<p class="font-normal text-gray-500 dark:text-gray-400">
-															정상 : "수정"개, 리메이크 : "수정"개
+															정상 : {item.normalUnitNum}개, 리메이크 : {item.remakeUnitNum}개
 														</p>
 													</div>
 												{:else}
 													<div>
 														<h4 class="text-gray-700 dark:text-gray-200">
-															총합 : {item.remakeCount.ok + item.remakeCount.re}
+															총합 : {item.normalFileNum + item.remakeFileNum}
 														</h4>
 														<p class="font-normal text-gray-500 dark:text-gray-400">
-															정상 : {item.remakeCount.ok}개, 리메이크 : {item.remakeCount.re}개
+															정상 : {item.normalFileNum}개, 리메이크 : {item.remakeFileNum}개
 														</p>
 													</div>
 												{/if}
 											</td>
 											<td class="whitespace-nowrap px-4 py-4 text-sm">
-												{#if item.folderName.info === 'partial'}
+												{#if item.info === 'partial'}
 													<p
 														class="max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
 													>
-														{#each getFileInfo(item.files, item.folderName.parts[1]).types as type, i}
+														{#each getFileInfo(item.directory.remakeFiles, item.corpName).types as type, i}
 															{type}{i <
-															getFileInfo(item.files, item.folderName.parts[1]).types.length - 1
+															getFileInfo(item.directory.remakeFiles, item.corpName).types.length -
+																1
 																? ', '
 																: ''}
 														{/each}
