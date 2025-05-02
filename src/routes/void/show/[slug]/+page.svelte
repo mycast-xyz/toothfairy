@@ -2,7 +2,14 @@
 	// 필요한 모듈 import
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import { toastStore } from '../../../../app/service/ToastService';
 	import MultiSTLViewer from '../../../../app/view/stlviewer/PrintOutPutViewer.svelte';
+	import Toast from '../../../../app/view/toast/Toast.svelte';
+
+	// 토스트 메시지 표시 함수
+	const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+		toastStore[type](message);
+	};
 
 	// props에서 데이터 가져오기
 	const { data } = $props<{ data: any }>();
@@ -46,6 +53,9 @@
 		ok: [] as RemakeFile[],
 		re: [] as RemakeFile[]
 	};
+
+	let normalUnitNum = data.info.normalUnitNum;
+	let remakeUnitNum = data.info.remakeUnitNum;
 
 	// 리메이크 파일 매칭 처리
 	if (data.info.directory?.remakeFiles) {
@@ -107,7 +117,60 @@
 	const handleFileSelect = (files: Array<{ url: string }>) => {
 		selectedFiles.set(files.map((f) => f.url));
 	};
+
+	// API 응답 처리 함수
+	const handleApiResponse = async (response: any) => {
+		if (response === 'normal') {
+			try {
+				const response = await fetch(`${data.url}/api/v0/data/create/ok`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						okData: normalUnitNum,
+						centerIdx: data.info.id
+					})
+				});
+
+				if (!response.ok) {
+					const data = await response.json();
+					showToast('error', data.resultMsg || '처리 중 오류가 발생했습니다.');
+				} else {
+					showToast('success', '처리가 완료되었습니다.');
+				}
+			} catch (error) {
+				console.error('서버 연결 중 오류가 발생했습니다.', error);
+				showToast('error', '처리 중 오류가 발생했습니다.');
+			}
+		} else if (response === 'remake') {
+			try {
+				const response = await fetch(`${data.url}/api/v0/data/create/re`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						reData: remakeUnitNum,
+						centerIdx: data.info.id
+					})
+				});
+
+				if (!response.ok) {
+					const data = await response.json();
+					showToast('error', data.resultMsg || '처리 중 오류가 발생했습니다.');
+				} else {
+					showToast('success', '처리가 완료되었습니다.');
+				}
+			} catch (error) {
+				console.error('서버 연결 중 오류가 발생했습니다.', error);
+				showToast('error', '처리 중 오류가 발생했습니다.');
+			}
+		}
+	};
 </script>
+
+<Toast />
 
 <main class="ml-64 h-svh flex-1 bg-gray-100 p-8 pt-20">
 	<article class=" flex h-full w-full flex-col lg:flex-row">
@@ -164,12 +227,16 @@
 							</p>
 							<input
 								type="text"
+								bind:value={normalUnitNum}
 								class=" h-18 w-3/4 border-none bg-gray-100 text-2xl font-bold"
 								placeholder="추가 필요"
 							/>
 						</div>
 
 						<button
+							onclick={() => {
+								handleApiResponse('normal');
+							}}
 							class="h-18 ml-auto inline-block w-1/5 bg-pink-500 p-3 tracking-tight text-white"
 						>
 							<h3 class="text-2xl font-bold">수정</h3>
@@ -188,12 +255,16 @@
 							</p>
 							<input
 								type="text"
+								bind:value={remakeUnitNum}
 								class=" h-18 w-3/4 border-none bg-gray-100 text-2xl font-bold"
 								placeholder="추가 필요"
 							/>
 						</div>
 
 						<button
+							onclick={() => {
+								handleApiResponse('remake');
+							}}
 							class="h-18 ml-auto inline-block w-1/5 bg-pink-500 p-3 tracking-tight text-white"
 						>
 							<h3 class="text-2xl font-bold">수정</h3>
@@ -216,7 +287,9 @@
 						<summary
 							class="box-title flex h-14 cursor-pointer flex-row items-center border-b border-gray-400 p-2.5"
 						>
-							<h3 class="my-auto text-xl font-bold text-pink-500">정상 파일 정보</h3>
+							<h3 class="my-auto text-xl font-bold text-pink-500">
+								정상 파일 정보 | {remakeInfo.ok.length}개
+							</h3>
 							<button
 								class="ml-auto border-l border-gray-200 text-sm text-gray-500"
 								onclick={() => handleFileSelect(remakeInfo.ok)}
@@ -257,7 +330,9 @@
 						<summary
 							class="box-title flex h-14 cursor-pointer flex-row items-center border-b border-gray-400 pl-2.5"
 						>
-							<h3 class="my-auto text-xl font-bold text-pink-500">리메이크 파일 정보</h3>
+							<h3 class="my-auto text-xl font-bold text-pink-500">
+								리메이크 파일 정보 | {remakeInfo.re.length}개
+							</h3>
 							<button
 								class="ml-auto mr-2 border-l border-gray-200 text-sm text-gray-500"
 								onclick={() => handleFileSelect(remakeInfo.re)}

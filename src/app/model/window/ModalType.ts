@@ -1,1 +1,1 @@
-export type ModalType = 'mobile-filter' | 'admin-add-kanban' | 'admin-add-game';
+export type ModalType = 'company-add' | 'company-edit' | 'company-delete';

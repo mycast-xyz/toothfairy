@@ -4,7 +4,7 @@
 </script>
 
 <!-- 상단 사용자 프로필 -->
-<nav class="fixed top-0 z-50 w-full border-b border-gray-200 bg-white">
+<nav class="fixed top-0 z-30 w-full border-b border-gray-200 bg-white">
 	<div class="px-3 py-3 lg:px-5 lg:pl-3">
 		<div class="flex items-center justify-between">
 			<div class="flex items-center justify-start rtl:justify-end">

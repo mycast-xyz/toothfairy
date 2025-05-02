@@ -7,15 +7,10 @@ import axios from 'axios';
 export const load: PageLoad = async ({ url }) => {
 	const currentUrl = 'http://' + url.hostname + ':3000';
 	let isMobile = false;
+
 	let data: any = {};
-
 	const dateParam = url.searchParams.get('date');
-	const typeParam = url.searchParams.get('type') || 'all';
 	const corpNameParam = url.searchParams.get('corpName') || '';
-
-	console.log(dateParam);
-	console.log(typeParam);
-	console.log(corpNameParam);
 
 	const today = new Date();
 	const yyyy = today.getFullYear();
@@ -23,18 +18,8 @@ export const load: PageLoad = async ({ url }) => {
 	const currentDate = `${yyyy}-${mm}`;
 	const date = dateParam ? dateParam : currentDate;
 
-	console.log(date);
-
 	await axios
-		.get(
-			currentUrl +
-				'/api/v0/file/chk?date=' +
-				date +
-				'&type=' +
-				typeParam +
-				'&corpName=' +
-				corpNameParam
-		)
+		.get(currentUrl + '/api/v0/invoice/list?date=' + date)
 		.then((res) => {
 			if (res.data.resultCode === 200) {
 				data = res.data.item;
@@ -52,7 +37,6 @@ export const load: PageLoad = async ({ url }) => {
 		info: data,
 		param: {
 			date: date,
-			type: typeParam,
 			corpName: corpNameParam
 		}
 	};

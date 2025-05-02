@@ -5,40 +5,30 @@
 	import { goto } from '$app/navigation';
 
 	const { data } = $props<{ data: any }>();
+	// 날짜 초기화 함수
+	function initializeDate() {
+		const today = new Date();
+		const defaultYear = today.getFullYear();
+		const defaultMonth = today.getMonth() + 1;
 
-	// 날짜 설정에 대한 처리
-	const today = new Date();
-	const currentYear = today.getFullYear();
-	const currentMonth = today.getMonth() + 1; // 월은 0부터 시작하므로 1을 더해줍니다.
-
-	const years = [currentYear, currentYear - 1, currentYear - 2, currentYear - 3, currentYear - 4];
-	let selectedYear = writable(years[0]);
-	let selectedMonth = writable(currentMonth);
-
-	function changeYear(direction: 'prev' | 'next') {
-		selectedYear.update((currentYear) => {
-			const currentIndex = years.indexOf(currentYear);
-			if (direction === 'prev') {
-				if (currentIndex > 0) {
-					return years[currentIndex - 1];
-				}
-			} else if (direction === 'next') {
-				if (currentIndex < years.length - 1) {
-					return years[currentIndex + 1];
-				}
-			}
-			return currentYear;
-		});
+		if (data.param.date) {
+			const [year, month] = data.param.date.split('-').map(Number);
+			return { year, month };
+		}
+		return { year: defaultYear, month: defaultMonth };
 	}
 
-	function handleMonthClick(month: number) {
-		console.log(`${month}월 버튼 클릭됨`);
-		selectedMonth.set(month);
-	}
+	const { year, month } = initializeDate();
+	let selectedYear = writable(year);
+	let selectedMonth = writable(month);
+	let selectedCorpName = writable('');
+
+	// svelte-ignore non_reactive_update
+	let selectedType = data.param.type ? data.param.type : 'all';
 
 	// 정렬 처리
 	let currentSort = writable({
-		column: data.info,
+		column: data.info, // 초기 정렬 컬럼
 		direction: 'asc',
 		isAsc: {
 			date: true,
@@ -50,172 +40,82 @@
 		}
 	});
 
-	$effect(() => {
-		console.log(currentSort);
-	});
-
-	function handleSort(column: string) {
-		let sortFunction;
-
-		switch (column) {
-			case 'date':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, date: !sort.isAsc.date }
-				}));
-				sortFunction = (a: any, b: any) => {
-					return $currentSort.isAsc.date
-						? new Date(a.folderName.date).getTime() - new Date(b.folderName.date).getTime()
-						: new Date(b.folderName.date).getTime() - new Date(a.folderName.date).getTime();
-				};
-				break;
-			case 'company':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, company: !sort.isAsc.company }
-				}));
-				sortFunction = (a: any, b: any) => {
-					return $currentSort.isAsc.company
-						? a.folderName.parts[1].localeCompare(b.folderName.parts[1])
-						: b.folderName.parts[1].localeCompare(a.folderName.parts[1]);
-				};
-				break;
-			case 'type':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, type: !sort.isAsc.type }
-				}));
-				sortFunction = (a: any, b: any) => {
-					return $currentSort.isAsc.type
-						? a.folderName.info.localeCompare(b.folderName.info)
-						: b.folderName.info.localeCompare(a.folderName.info);
-				};
-				break;
-			case 'fileCount':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, fileCount: !sort.isAsc.fileCount }
-				}));
-				sortFunction = (a: any, b: any) => {
-					return $currentSort.isAsc.fileCount
-						? a.remakeCount.ok + a.remakeCount.re - (b.remakeCount.ok + b.remakeCount.re)
-						: b.remakeCount.ok + b.remakeCount.re - (a.remakeCount.ok + a.remakeCount.re);
-				};
-				break;
-			case 'unitCount':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, unitCount: !sort.isAsc.unitCount }
-				}));
-				sortFunction = (a: any, b: any) => {
-					if (a.folderName.info === 'cap' && b.folderName.info === 'cap') {
-						return 0;
-					} else if (a.folderName.info === 'cap') {
-						return $currentSort.isAsc.unitCount ? -1 : 1;
-					} else if (b.folderName.info === 'cap') {
-						return $currentSort.isAsc.unitCount ? 1 : -1;
-					}
-					return $currentSort.isAsc.unitCount
-						? a.remakeCount.ok + a.remakeCount.re - (b.remakeCount.ok + b.remakeCount.re)
-						: b.remakeCount.ok + b.remakeCount.re - (a.remakeCount.ok + a.remakeCount.re);
-				};
-				break;
-			case 'fileName':
-				currentSort.update((sort) => ({
-					...sort,
-					isAsc: { ...sort.isAsc, fileName: !sort.isAsc.fileName }
-				}));
-				sortFunction = (a: any, b: any) => {
-					if (!a.files || !b.files) return 0;
-					return $currentSort.isAsc.fileName
-						? a.files[0].localeCompare(b.files[0])
-						: b.files[0].localeCompare(a.files[0]);
-				};
-				break;
-			default:
-				return;
-		}
-
-		if ($currentSort.column === column) {
-			// 같은 컬럼을 다시 클릭하면 정렬 방향을 반대로
-			currentSort.update((sort) => ({
-				...sort,
-				direction: sort.direction === 'asc' ? 'desc' : 'asc'
-			}));
-		} else {
-			// 새로운 컬럼 클릭시 오름차순으로 시작
-			currentSort.update((sort) => ({ ...sort, column: column, direction: 'asc' }));
-		}
-
-		$currentSort.column = [...data.info].sort((a, b) => {
-			const result = sortFunction(a, b);
-			return $currentSort.direction === 'asc' ? result : -result;
-		});
-	}
-
-	let dateSelectisOpen = false;
-
 	// 출력물 종류 처리
-	function getColorAndName(info: any) {
-		let color = '';
-		let name = '';
+	function getColorAndName(info: string) {
+		const typeMap: Record<string, { color: string; name: string }> = {
+			cap: {
+				color: 'bg-gray-100/60 text-gray-500 dark:bg-gray-800',
+				name: '캡'
+			},
+			partial: {
+				color: 'bg-emerald-100/60 text-emerald-500 dark:bg-gray-800',
+				name: '파샬'
+			},
+			custom: {
+				color: 'bg-amber-100/60 text-amber-500 dark:bg-gray-800',
+				name: '커스텀'
+			},
+			allonfour: {
+				color: 'bg-pink-100/60 text-pink-500 dark:bg-gray-800',
+				name: '올온포'
+			}
+		};
 
-		if (info === 'cap') {
-			color = 'bg-gray-100/60 text-gray-500 dark:bg-gray-800';
-			name = '캡';
-		} else if (info === 'partial') {
-			color = 'bg-emerald-100/60 text-emerald-500 dark:bg-gray-800';
-			name = '파샬';
-		} else if (info === 'custom') {
-			color = 'bg-amber-100/60 text-amber-500 dark:bg-gray-800';
-			name = '커스텀';
-		} else if (info === 'allonfour') {
-			color = 'bg-pink-100/60 text-pink-500 dark:bg-gray-800';
-			name = '올온포';
-		}
-
-		return { color, name };
+		return typeMap[info] || { color: '', name: '' };
 	}
-
 	// 파일 정보 처리
 	function getFileInfo(fileName: any, sender: string) {
-		// remakeFiles 객체에서 re와 ok 배열을 합쳐서 하나의 배열로 만듦
-		let allFiles = [];
+		// 파일 배열 초기화
+		const allFiles: any[] = [];
+
+		// 파일 객체에서 re와 ok 배열 병합
 		if (fileName && typeof fileName === 'object') {
-			if (fileName.re && Array.isArray(fileName.re)) {
-				allFiles = allFiles.concat(fileName.re);
-			}
-			if (fileName.ok && Array.isArray(fileName.ok)) {
-				allFiles = allFiles.concat(fileName.ok);
-			}
+			if (Array.isArray(fileName.re)) allFiles.push(...fileName.re);
+			if (Array.isArray(fileName.ok)) allFiles.push(...fileName.ok);
 		}
-		let result = {
+
+		const result = {
 			name: allFiles,
 			sender: sender,
 			types: [] as string[]
 		};
-		// 이레, 남원, 남원이레인 경우 2번과 0이 아닌 숫자 포함
-		if (sender === '이레' || sender === '남원' || sender === '남원이레') {
+
+		// 발송처별 파일 처리
+		const senderGroups = {
+			ire: [
+				'이레',
+				'남원',
+				'남원이레',
+				'남원이레pa',
+				'남원이레PA',
+				'남원 이레',
+				'남원 이레 pa',
+				'남원 이레 PA',
+				'이레pa',
+				'이레PA',
+				'이레 pa',
+				'이레 PA'
+			],
+			ijung: ['이정', '이정pa', '이정 pa', '이정 PA', '이정PA']
+		};
+
+		// 이레/남원 그룹 처리
+		if (senderGroups.ire.includes(sender)) {
 			allFiles.forEach((file) => {
-				const parts = file.split('_').filter((item: string) => item.length > 0);
-				if (parts.length >= 3) {
-					result.types.push(parts[2]);
-				}
+				const parts = file.split('_').filter(Boolean);
+				if (parts.length >= 3) result.types.push(parts[2]);
 			});
-		} else if (sender === '이정' || sender === '이정pa' || sender === '이정 pa') {
+		}
+		// 이정 그룹 처리
+		else if (senderGroups.ijung.includes(sender)) {
 			allFiles.forEach((file) => {
-				const parts = file.split('_').filter((item: string) => item.length > 0);
+				const parts = file.split('_').filter(Boolean);
 				if (parts.length >= 3) {
 					const combinedPart = (parts[0] + '_' + parts[1]).replace(/[0-9]/g, '');
-
-					const filePart = file;
-					if (
-						['re', '리메이크', '리메'].some((keyword) => filePart.toLowerCase().includes(keyword))
-					) {
-						result.types.push(combinedPart + '(re)');
-					} else {
-						result.types.push(combinedPart);
-					}
+					const isRemake = ['re', '리메이크', '리메'].some((keyword) =>
+						file.toLowerCase().includes(keyword)
+					);
+					result.types.push(isRemake ? `${combinedPart}(re)` : combinedPart);
 				}
 			});
 		}
@@ -226,6 +126,18 @@
 	function handleRowClick(item: any) {
 		console.log(item);
 		goto('/void/show/' + item);
+	}
+
+	function handleSearchClick() {
+		const params = new URLSearchParams();
+		params.append(
+			'date',
+			$selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0')
+		);
+		params.append('type', selectedType);
+		params.append('corpName', $selectedCorpName.toString());
+
+		window.location.href = `/void/print?${params.toString()}`;
 	}
 </script>
 
@@ -243,96 +155,73 @@
 				<div class="shadow-xs inline-flex rounded-md" role="group">
 					<button
 						type="button"
+						onclick={() => (selectedType = 'all')}
+						class:active={selectedType === 'all'}
 						class="rounded-s-lg border border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
 					>
 						전체
 					</button>
 					<button
 						type="button"
+						onclick={() => (selectedType = 'cap')}
+						class:active={selectedType === 'cap'}
 						class="border-b border-r border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
 					>
 						캡
 					</button>
 					<button
 						type="button"
+						onclick={() => (selectedType = 'partial')}
+						class:active={selectedType === 'partial'}
 						class="border-b border-r border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
 					>
 						파샬
 					</button>
 					<button
 						type="button"
+						onclick={() => (selectedType = 'custom')}
+						class:active={selectedType === 'custom'}
 						class="border-b border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
 					>
 						커스텀
 					</button>
 					<button
 						type="button"
+						onclick={() => (selectedType = 'allonfour')}
+						class:active={selectedType === 'allonfour'}
 						class="rounded-e-lg border border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
 					>
 						올온포
 					</button>
 				</div>
 				<div class="relative ml-2 inline-block">
-					<button
-						type="button"
-						onclick={() => (dateSelectisOpen = !dateSelectisOpen)}
-						class="inline-flex items-center rounded-lg border border-gray-700 bg-white px-4 py-1 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300"
-					>
-						<i class="ri-calendar-2-line mr-2 text-lg"></i>
-						<p>{$selectedYear}년 {$selectedMonth}월</p>
-					</button>
-					{#if dateSelectisOpen}
-						<div
-							class="absolute left-0 mt-2 w-64 rounded-lg border border-gray-100 bg-white p-4 shadow-lg"
-						>
-							<div class="mb-4 flex items-center justify-between">
-								<button
-									class="text-gray-600 hover:text-gray-900"
-									aria-label="이전 년도"
-									onclick={() => changeYear('next')}
-								>
-									<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M15 19l-7-7 7-7"
-										/>
-									</svg>
-								</button>
-								<p class="text-lg font-bold">{$selectedYear}</p>
-								<button
-									class="text-gray-600 hover:text-gray-900"
-									aria-label="다음 년도"
-									onclick={() => changeYear('prev')}
-								>
-									<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M9 5l7 7-7 7"
-										/>
-									</svg>
-								</button>
-							</div>
-
-							<div class="grid grid-cols-3 gap-2">
-								{#each Array(12) as _, i}
-									<button
-										class="rounded-lg border p-2 text-sm hover:bg-gray-100"
-										onclick={() => handleMonthClick(i + 1)}
-									>
-										{i + 1}월
-									</button>
-								{/each}
-							</div>
-						</div>
-					{/if}
+					<div class="relative inline-flex space-x-2">
+						<input
+							type="number"
+							class="h-10 w-24 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							placeholder="{$selectedYear}년"
+							bind:value={$selectedYear}
+						/>
+						<input
+							type="number"
+							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							placeholder="{$selectedMonth}월"
+							bind:value={$selectedMonth}
+						/>
+					</div>
+					<div class="relative inline-flex space-x-2">
+						<input
+							type="text"
+							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							placeholder="회사명"
+							bind:value={$selectedCorpName}
+						/>
+					</div>
 				</div>
 				<div class="float-right ml-auto inline-block w-auto items-center">
 					<button
 						type="button"
+						onclick={handleSearchClick}
 						class="mb-2 rounded-lg bg-pink-500 px-5 py-3 text-sm font-medium text-white hover:bg-pink-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-pink-600 dark:hover:bg-pink-700 dark:focus:ring-pink-900"
 					>
 						검색
@@ -353,7 +242,6 @@
 										<th
 											scope="col"
 											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('date')}
 										>
 											<span>날짜</span>
 											<i
@@ -365,7 +253,6 @@
 										<th
 											scope="col"
 											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('company')}
 										>
 											<span>회사</span>
 											<i
@@ -376,8 +263,14 @@
 										</th>
 										<th
 											scope="col"
+											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+										>
+											<span>확인</span>
+											<i class="float-right ml-auto"></i>
+										</th>
+										<th
+											scope="col"
 											class="cursor-pointer px-12 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('type')}
 										>
 											출력물 종류
 											<i
@@ -390,7 +283,6 @@
 										<th
 											scope="col"
 											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('fileCount')}
 										>
 											출력 파일 갯수
 											<i
@@ -403,7 +295,6 @@
 										<th
 											scope="col"
 											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('unitCount')}
 										>
 											출력 유닛 갯수
 											<i
@@ -416,7 +307,6 @@
 										<th
 											scope="col"
 											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											onclick={() => handleSort('fileName')}
 										>
 											파일 명
 											<i
@@ -425,7 +315,6 @@
 												class:ri-sort-desc={!$currentSort.isAsc.fileName}
 											></i>
 										</th>
-
 										<th scope="col" class="relative px-4 py-3.5">
 											<span class="sr-only">Edit</span>
 										</th>
@@ -434,7 +323,7 @@
 								<tbody
 									class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
 								>
-									{#each $currentSort.column as item}
+									{#each data.info as item}
 										<tr onclick={() => handleRowClick(item.id)}>
 											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
 												<div>
@@ -454,6 +343,39 @@
 														{item.corpName}
 													</h2>
 												</div>
+											</td>
+											<td
+												scope="col"
+												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											>
+												<span
+													class={item.normalFileNum > 0
+														? item.normalUnitNum === 0
+															? 'text-red-500'
+															: 'text-green-500'
+														: 'text-gray-500'}>정상</span
+												>
+												<i
+													class={item.normalFileNum > 0
+														? item.normalUnitNum === 0
+															? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
+															: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
+														: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
+												></i>
+												<span
+													class={item.remakeFileNum > 0
+														? item.remakeUnitNum === 0
+															? 'text-red-500'
+															: 'text-green-500'
+														: 'text-gray-500'}>리메이크</span
+												>
+												<i
+													class={item.remakeFileNum > 0
+														? item.remakeUnitNum === 0
+															? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
+															: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
+														: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
+												></i>
 											</td>
 											<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
 												<div
@@ -493,10 +415,10 @@
 													</div>
 												{/if}
 											</td>
-											<td class="whitespace-nowrap px-4 py-4 text-sm">
+											<td class="pointer-events-none whitespace-nowrap px-4 py-4 text-sm">
 												{#if item.info === 'partial'}
 													<p
-														class="max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
+														class=" max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
 													>
 														{#each getFileInfo(item.directory.remakeFiles, item.corpName).types as type, i}
 															{type}{i <
@@ -549,6 +471,13 @@
 			.dropdownMenuContnet {
 				display: block;
 			}
+		}
+	}
+	.nav-search-box {
+		button.active {
+			background-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
+			border-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
+			color: white;
 		}
 	}
 </style>

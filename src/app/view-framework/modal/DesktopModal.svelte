@@ -16,7 +16,7 @@
 <div
 	id="modal"
 	tabindex="-1"
-	class="fixed left-0 right-0 top-0 z-50 h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0"
+	class="fixed left-0 right-0 top-0 z-40 h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0"
 >
 	<div class="absolute inset-0 bg-black/50"></div>
 	<div class="relative h-full w-full">

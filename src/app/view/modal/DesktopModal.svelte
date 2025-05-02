@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { WindowService, ModalView } from '../../service/WindowService';
 	import DesktopModal from '../../view-framework/modal/DesktopModal.svelte';
-	import AddKanban from './kanban/AddKanban.svelte';
+	import AddCompany from '../company/AddCompany.svelte';
 
 	// props에서 데이터 가져오기
 	//const { data } = $props<{ data: any }>();
@@ -12,9 +12,9 @@
 
 	WindowService.modal.subscribe((m) => {
 		switch (m) {
-			case 'admin-add-kanban':
-				ModalComponent = AddKanban;
-				ModalTitle = '칸반보드 추가';
+			case 'company-add':
+				ModalComponent = AddCompany;
+				ModalTitle = '센터 거래처 추가';
 				ModalSize = 'large';
 				break;
 			default:
@@ -24,9 +24,6 @@
 	});
 
 	// svelte-ignore state_referenced_locally
-	console.log(ModalTitle);
-
-	console.log($ModalView);
 
 	$effect(() => {
 		console.log('모달 상태:', $ModalView);

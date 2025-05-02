@@ -21,3 +21,9 @@ class WindowServiceInit {
 
 export const WindowService = new WindowServiceInit();
 export const ModalView = writable(false);
+export const currentUrl = writable('');
+
+// 브라우저 환경에서만 URL 설정
+if (typeof window !== 'undefined') {
+	currentUrl.set('http://' + window.location.hostname + ':3000');
+}
