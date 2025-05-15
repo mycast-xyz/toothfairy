@@ -1,15 +1,15 @@
 <script lang="ts">
-	import { WindowService, currentUrl } from '../../../app/service/WindowService';
+	import { WindowService, currentUrl } from '../../service/WindowService';
 	import axios from 'axios';
-	import { CenterCompany } from '../../../app/model/company/CenterCompany';
-	import { toastStore } from '../../../app/service/ToastService';
+	import { CenterCompany } from '../../model/company/CenterCompany';
+	import { toastStore } from '../../service/ToastService';
 
 	// 토스트 메시지 표시 함수
 	const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
 		toastStore[type](message);
 	};
-
-	let newCompany = $state({
+	// CenterCompany에서 데이터 가져오기
+	let newCompany: any = $state({
 		name: '',
 		companyName: '',
 		businessNumber: '',
@@ -23,7 +23,24 @@
 			allonfour: { normal: 0, remake: 0 },
 			custom: { normal: 0, remake: 0 }
 		},
-		deliveryFee: 0
+		deliveryFee: 0,
+		id: 0
+	});
+
+	CenterCompany.company.subscribe((company) => {
+		console.log(company);
+		if (company) {
+			newCompany = {
+				...newCompany,
+				...company,
+				prices: {
+					cap: { ...(company.prices?.cap || { normal: 0, remake: 0 }) },
+					partial: { ...(company.prices?.partial || { normal: 0, remake: 0 }) },
+					allonfour: { ...(company.prices?.allonfour || { normal: 0, remake: 0 }) },
+					custom: { ...(company.prices?.custom || { normal: 0, remake: 0 }) }
+				}
+			};
+		}
 	});
 
 	console.log($currentUrl);

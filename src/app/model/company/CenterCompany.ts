@@ -1,44 +1,73 @@
 import { writable } from 'svelte/store';
-
 export interface CenterCompanyType {
 	name: string;
-	businessnumber: string;
+	companyName: string;
+	businessNumber: string;
 	representative: string;
 	address: string;
 	cellnumber: string;
+	item: string[];
+	prices: {
+		cap: { normal: number; remake: number };
+		partial: { normal: number; remake: number };
+		allonfour: { normal: number; remake: number };
+		custom: { normal: number; remake: number };
+	};
+	deliveryFee: number;
+	id: number;
 }
 
 export class CenterCompanyInit {
-	private _company = writable<CenterCompanyType>({
+	#company = writable<CenterCompanyType>({
 		name: '',
-		businessnumber: '',
+		companyName: '',
+		businessNumber: '',
 		representative: '',
 		address: '',
-		cellnumber: ''
+		cellnumber: '',
+		item: [],
+		prices: {
+			cap: { normal: 0, remake: 0 },
+			partial: { normal: 0, remake: 0 },
+			allonfour: { normal: 0, remake: 0 },
+			custom: { normal: 0, remake: 0 }
+		},
+		deliveryFee: 0,
+		id: 0
 	});
 
 	get company() {
-		return this._company;
+		return this.#company;
 	}
 
 	setCompany(company: CenterCompanyType) {
-		this._company.set(company);
+		this.#company.set(company);
 	}
 
 	updateCompany(partialCompany: Partial<CenterCompanyType>) {
-		this._company.update((current) => ({
+		this.#company.update((current) => ({
 			...current,
 			...partialCompany
 		}));
 	}
 
 	resetCompany() {
-		this._company.set({
+		this.#company.set({
 			name: '',
-			businessnumber: '',
+			companyName: '',
+			businessNumber: '',
 			representative: '',
 			address: '',
-			cellnumber: ''
+			cellnumber: '',
+			item: [],
+			prices: {
+				cap: { normal: 0, remake: 0 },
+				partial: { normal: 0, remake: 0 },
+				allonfour: { normal: 0, remake: 0 },
+				custom: { normal: 0, remake: 0 }
+			},
+			deliveryFee: 0,
+			id: 0
 		});
 	}
 }

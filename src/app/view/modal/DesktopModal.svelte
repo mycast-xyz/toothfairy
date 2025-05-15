@@ -2,7 +2,7 @@
 	import { WindowService, ModalView } from '../../service/WindowService';
 	import DesktopModal from '../../view-framework/modal/DesktopModal.svelte';
 	import AddCompany from '../company/AddCompany.svelte';
-
+	import EditCompany from '../company/EditCompany.svelte';
 	// props에서 데이터 가져오기
 	//const { data } = $props<{ data: any }>();
 
@@ -15,6 +15,11 @@
 			case 'company-add':
 				ModalComponent = AddCompany;
 				ModalTitle = '센터 거래처 추가';
+				ModalSize = 'large';
+				break;
+			case 'company-edit':
+				ModalComponent = EditCompany;
+				ModalTitle = '센터 거래처 수정';
 				ModalSize = 'large';
 				break;
 			default:

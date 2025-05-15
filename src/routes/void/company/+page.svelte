@@ -1,9 +1,7 @@
 <script lang="ts">
 	// 캘린더 처리용 DatePicker
-	import type { PageData } from './$types';
-	import { writable } from 'svelte/store';
-	import { goto } from '$app/navigation';
 	import { WindowService } from '../../../app/service/WindowService';
+	import { CenterCompany } from '../../../app/model/company/CenterCompany';
 
 	// 새 태스크 추가
 	function addNewCompany() {
@@ -11,6 +9,8 @@
 
 		WindowService.openModal('company-add');
 	}
+
+	// 페이지 데이터 처리
 	const { data } = $props<{ data: any }>();
 
 	// 출력물 종류 변환 함수
@@ -28,6 +28,50 @@
 			.split(',')
 			.map((item) => typeMap[item.trim()] || item)
 			.join(', ');
+	}
+
+	// 거래처 데이터를 CenterCompanyInit에 설정하는 함수
+	function setCompanyData(companyData: any) {
+		if (typeof companyData.item === 'string') {
+			companyData.item = companyData.item.split(',').map((item) => item.trim());
+		}
+		CenterCompany.setCompany({
+			name: companyData.name || '',
+			companyName: companyData.companyname || '',
+			businessNumber: companyData.businessnumber || '',
+			representative: companyData.representative || '',
+			address: companyData.address || '',
+			cellnumber: companyData.cellnumber || '',
+			item: companyData.item || [],
+			prices: {
+				cap: {
+					normal: companyData.prices?.cap?.normal || 0,
+					remake: companyData.prices?.cap?.remake || 0
+				},
+				partial: {
+					normal: companyData.prices?.partial?.normal || 0,
+					remake: companyData.prices?.partial?.remake || 0
+				},
+				allonfour: {
+					normal: companyData.prices?.allonfour?.normal || 0,
+					remake: companyData.prices?.allonfour?.remake || 0
+				},
+				custom: {
+					normal: companyData.prices?.custom?.normal || 0,
+					remake: companyData.prices?.custom?.remake || 0
+				}
+			},
+			deliveryFee: companyData.deliveryFee || 0,
+			id: companyData.id || 0
+		});
+	}
+
+	// 거래처 추가 버튼 클릭 시 호출되는 함수 수정
+	function editNewCompany(companyData: any) {
+		console.log('거래처 수정');
+		console.log(companyData);
+		setCompanyData(companyData); // 빈 데이터로 초기화
+		WindowService.openModal('company-edit');
 	}
 </script>
 
@@ -148,6 +192,7 @@
 												<button
 													class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
 													aria-label="수정"
+													onclick={() => editNewCompany(item)}
 												>
 													<i class="ri-more-2-line text-lg"></i>
 												</button>

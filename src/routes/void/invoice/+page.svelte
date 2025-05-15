@@ -132,39 +132,47 @@
 												scope="col"
 												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 											>
-												<span
-													>출력: {item.invoice.cap.normal}, 리메이크: {item.invoice.cap
-														.remake}</span
-												>
+												<a href={`/void/invoice/${item.id}?date=${data.param.date}&item=cap`}>
+													<span
+														>출력: {item.invoice.cap.normal}, 리메이크: {item.invoice.cap
+															.remake}</span
+													>
+												</a>
 											</td>
 											<td
 												scope="col"
 												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 											>
-												<span
-													>출력: {item.invoice.partial.normal}, 리메이크: {item.invoice.partial
-														.remake}</span
-												>
+												<a href={`/void/invoice/${item.id}?date=${data.param.date}&item=partial`}>
+													<span
+														>출력: {item.invoice.partial.normal}, 리메이크: {item.invoice.partial
+															.remake}</span
+													>
+												</a>
 											</td>
 											<td
 												scope="col"
 												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 											>
-												<span
-													>출력: {item.invoice.custom.normal}, 리메이크: {item.invoice.custom
-														.remake}</span
-												>
+												<a href={`/void/invoice/${item.id}?date=${data.param.date}&item=custom`}>
+													<span
+														>출력: {item.invoice.custom.normal}, 리메이크: {item.invoice.custom
+															.remake}</span
+													>
+												</a>
 											</td>
 											<td
 												scope="col"
 												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 											>
-												<span
-													>출력: {item.invoice.allonfour.normal}, 리메이크: {item.invoice.allonfour
-														.remake}</span
-												>
-											</td></tr
-										>
+												<a href={`/void/invoice/${item.id}?date=${data.param.date}&item=allonfour`}>
+													<span
+														>출력: {item.invoice.allonfour.normal}, 리메이크: {item.invoice
+															.allonfour.remake}</span
+													>
+												</a>
+											</td>
+										</tr>
 									{/each}
 								</tbody>
 							</table>
