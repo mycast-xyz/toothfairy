@@ -57,7 +57,19 @@
 					<div
 						class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-800"
 					>
-						{testlog.photoFile ? testlog.photoFile.name || '파일이 선택됨' : '파일이 선택되지 않음'}
+						{testlog.photoFile
+							? (() => {
+									// base64 문자열에서 이미지 타입 추출
+									const match = testlog.photoFile.match(/^data:([^;]+);base64,/);
+									if (match) {
+										const mimeType = match[1];
+										// MIME 타입에서 확장자 추출
+										const extension = mimeType.split('/')[1]?.toUpperCase() || 'UNKNOWN';
+										return `파일이 선택됨 (${extension})`;
+									}
+									return '파일이 선택됨';
+								})()
+							: '파일이 선택되지 않음'}
 					</div>
 					<div class="p-2">
 						<img src={testlog.photoFile} alt="의뢰서 파일" />
