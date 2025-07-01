@@ -189,7 +189,7 @@
 		<button class="rounded-md bg-gray-200 px-4 py-2" onclick={() => WindowService.closeModal()}>
 			취소
 		</button>
-		<button class="rounded-md bg-pink-500 px-4 py-2 text-white" onclick={saveCompany}>
+		<button class="rounded-md bg-violet-500 px-4 py-2 text-white" onclick={saveCompany}>
 			저장
 		</button>
 	</div>

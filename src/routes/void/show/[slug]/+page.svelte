@@ -186,7 +186,7 @@
 					>
 						<i class="ri-arrow-left-line"></i>
 					</button>
-					<h3 class="my-auto text-xl font-bold text-pink-500">출력물 관리 정보</h3>
+					<h3 class="my-auto text-xl font-bold text-violet-500">출력물 관리 정보</h3>
 				</div>
 				<div class="patient-name inline-block w-full tracking-tight">
 					<h3 class="pl-2 text-4xl font-bold text-gray-900">{data.info.corpName} 치과 기공소</h3>
@@ -208,7 +208,7 @@
 							<h3 class="text-4xl font-bold">{getInfoName(data.info.info)}</h3>
 						</div>
 						<div
-							class="ml-auto mr-5 inline-block h-20 w-1/2 bg-pink-500 p-3 tracking-tight text-white"
+							class="ml-auto mr-5 inline-block h-20 w-1/2 bg-violet-500 p-3 tracking-tight text-white"
 						>
 							<p class=" text-sm">유닛 갯수</p>
 							<h3 class="text-4xl font-bold">추가 필요</h3>
@@ -237,7 +237,7 @@
 							onclick={() => {
 								handleApiResponse('normal');
 							}}
-							class="h-18 ml-auto inline-block w-1/5 bg-pink-500 p-3 tracking-tight text-white"
+							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white"
 						>
 							<h3 class="text-2xl font-bold">수정</h3>
 						</button>
@@ -265,7 +265,7 @@
 							onclick={() => {
 								handleApiResponse('remake');
 							}}
-							class="h-18 ml-auto inline-block w-1/5 bg-pink-500 p-3 tracking-tight text-white"
+							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white"
 						>
 							<h3 class="text-2xl font-bold">수정</h3>
 						</button>
@@ -287,7 +287,7 @@
 						<summary
 							class="box-title flex h-14 cursor-pointer flex-row items-center border-b border-gray-400 p-2.5"
 						>
-							<h3 class="my-auto text-xl font-bold text-pink-500">
+							<h3 class="my-auto text-xl font-bold text-violet-500">
 								정상 파일 정보 | {remakeInfo.ok.length}개
 							</h3>
 							<button
@@ -302,7 +302,7 @@
 								<div class="flex w-full items-center border-b border-gray-200 p-2 pl-2.5">
 									<input
 										type="checkbox"
-										class="mr-2 h-4 w-4 rounded border-gray-300 text-pink-500"
+										class="mr-2 h-4 w-4 rounded border-gray-300 text-violet-500"
 										value={file}
 										onchange={(e) => {
 											const target = e.target as HTMLInputElement;
@@ -330,7 +330,7 @@
 						<summary
 							class="box-title flex h-14 cursor-pointer flex-row items-center border-b border-gray-400 pl-2.5"
 						>
-							<h3 class="my-auto text-xl font-bold text-pink-500">
+							<h3 class="my-auto text-xl font-bold text-violet-500">
 								리메이크 파일 정보 | {remakeInfo.re.length}개
 							</h3>
 							<button
@@ -345,7 +345,7 @@
 								<div class="flex w-full items-center border-b border-gray-200 p-2 pl-2.5">
 									<input
 										type="checkbox"
-										class="mr-2 h-4 w-4 rounded border-gray-300 text-pink-500"
+										class="mr-2 h-4 w-4 rounded border-gray-300 text-violet-500"
 										value={file.url}
 										onchange={(e) => {
 											const target = e.target as HTMLInputElement;

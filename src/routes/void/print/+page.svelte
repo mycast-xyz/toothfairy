@@ -148,7 +148,7 @@
 		>
 			<div class="re-list-title flex w-full flex-row">
 				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-pink-500">출력물 목록</h3>
+					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">출력물 목록</h3>
 				</div>
 			</div>
 			<div class="nav-search-box mt-4 border-t border-gray-100 pt-4">
@@ -198,13 +198,13 @@
 					<div class="relative inline-flex space-x-2">
 						<input
 							type="number"
-							class="h-10 w-24 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							class="h-10 w-24 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
 							placeholder="{$selectedYear}년"
 							bind:value={$selectedYear}
 						/>
 						<input
 							type="number"
-							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
 							placeholder="{$selectedMonth}월"
 							bind:value={$selectedMonth}
 						/>
@@ -212,7 +212,7 @@
 					<div class="relative inline-flex space-x-2">
 						<input
 							type="text"
-							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
 							placeholder="회사명"
 							bind:value={$selectedCorpName}
 						/>
@@ -222,7 +222,7 @@
 					<button
 						type="button"
 						onclick={handleSearchClick}
-						class="mb-2 rounded-lg bg-pink-500 px-5 py-3 text-sm font-medium text-white hover:bg-pink-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-pink-600 dark:hover:bg-pink-700 dark:focus:ring-pink-900"
+						class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
 					>
 						검색
 					</button>
@@ -475,8 +475,8 @@
 	}
 	.nav-search-box {
 		button.active {
-			background-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
-			border-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
+			background-color: rgb(91 33 182 / var(--tw-bg-opacity, 1));
+			border-color: rgb(91 33 182 / var(--tw-bg-opacity, 1));
 			color: white;
 		}
 	}

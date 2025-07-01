@@ -82,12 +82,12 @@
 		>
 			<div class="re-list-title flex w-full flex-row">
 				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-pink-500">거래처 목록</h3>
+					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">거래처 목록</h3>
 				</div>
 				<button
 					type="button"
 					onclick={addNewCompany}
-					class="mb-2 ml-auto rounded-lg bg-pink-500 px-5 py-3 text-sm font-medium text-white hover:bg-pink-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-pink-600 dark:hover:bg-pink-700 dark:focus:ring-pink-900"
+					class="mb-2 ml-auto rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
 				>
 					거래처 추가
 				</button>

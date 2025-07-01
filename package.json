@@ -46,12 +46,14 @@
 		"DatePicker": "^2.0.0",
 		"axios": "^1.7.9",
 		"date-fns": "^4.1.0",
+		"format": "^0.2.2",
 		"html2canvas": "^1.4.1",
 		"jspdf": "^3.0.1",
 		"remixicon": "^4.6.0",
 		"sortablejs": "^1.15.6",
 		"swiper": "^11.2.1",
 		"three": "^0.174.0",
-		"three-stl-loader": "^1.0.6"
+		"three-stl-loader": "^1.0.6",
+		"uuid": "^11.1.0"
 	}
 }

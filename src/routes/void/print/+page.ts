@@ -13,10 +13,6 @@ export const load: PageLoad = async ({ url }) => {
 	const typeParam = url.searchParams.get('type') || 'all';
 	const corpNameParam = url.searchParams.get('corpName') || '';
 
-	console.log(dateParam);
-	console.log(typeParam);
-	console.log(corpNameParam);
-
 	const today = new Date();
 	const yyyy = today.getFullYear();
 	const mm = String(today.getMonth() + 1).padStart(2, '0'); // 월은 0부터 시작하므로 1을 더해줍니다.
