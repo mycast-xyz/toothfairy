@@ -28,9 +28,9 @@
 	}
 </script>
 
-<main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
+<main class="mt-12 min-h-screen flex-1 bg-gray-100 p-4">
 	<article class="pc-main w-full">
-		<article class="w-full pl-3 pr-5 pt-3">
+		<article class="w-full pt-3">
 			<HeaderBar {currentStep} />
 
 			{#if currentStep == 1}

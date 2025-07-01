@@ -19,7 +19,7 @@ export interface PatientInfo {
 	sendCompany: string;
 	totalPrice: number;
 	option: string[];
-	photoFile: File | null; // [변경] 사진의 임시 URL 대신 File 객체를 직접 저장
+	photoFile: string | null; // [변경] 사진의 임시 URL 대신 File 객체를 직접 저장
 }
 
 export class PatientInfoInit {

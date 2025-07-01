@@ -5,9 +5,7 @@
 	import TestDentistry from '../../../model/company/TestDentistry.json';
 
 	// 캘린더 처리용 DatePicker
-	import { DatePicker } from '@svelte-plugins/datepicker';
 	import { format } from 'date-fns';
-	import { defaultConfig } from '../../../model/date/DatePickerConfig';
 	import { patientInfoStore } from '../../../model/lab/request/Request';
 
 	// props로 부모 컴포넌트의 nextStep 함수를 받음
@@ -52,17 +50,31 @@
 	const formatDate = (dateString: string | Date) => {
 		return (dateString && format(new Date(dateString), dateFormat)) || '';
 	};
-	let deliveryDate = new Date(getDateFromToday(7));
-	let deliveryIsOpen = false;
-	const toggleDeliveryDatePicker = () => (deliveryIsOpen = !deliveryIsOpen);
-	const onDeliveryChange = () => {
-		deliveryDate = new Date(formattedDeliveryDate);
+	let deliveryDate = $state(formatDate(new Date(getDateFromToday(7))));
+
+	// 의뢰서 파일 처리
+	let photoFile = $state<string | null>(null);
+	const handlePhotoFile = (event: Event) => {
+		const file = (event.target as HTMLInputElement).files?.[0];
+		if (file) {
+			const reader = new FileReader();
+
+			// 파일 읽기가 완료되면 실행될 콜백 함수
+			reader.onload = (e) => {
+				if (e.target && e.target.result) {
+					photoFile = e.target.result as string; // 결과를 변수에 저장
+				}
+			};
+
+			// 파일을 Base64 데이터 URL로 읽기 시작
+			reader.readAsDataURL(file);
+		}
 	};
 
-	let formattedDeliveryDate = $derived(formatDate(deliveryDate));
-
+	// 저장
 	function sendPatientInfo() {
-		patientInfo.endDate = formattedDeliveryDate;
+		patientInfo.endDate = formatDate(deliveryDate);
+		patientInfo.photoFile = photoFile;
 		patientInfoStore.setPatientInfo(patientInfo);
 		let testlog;
 		patientInfoStore.patientInfo.subscribe((data) => {
@@ -102,25 +114,12 @@
 				<label for="first_name" class="mb-2 block text-sm font-medium text-gray-600"
 					>납품 요구일
 				</label>
-				<DatePicker
-					bind:isOpen={deliveryIsOpen}
-					bind:startDate={deliveryDate}
-					showYearControls={false}
-					dowLabels={defaultConfig.dowLabels}
-					monthLabels={defaultConfig.monthLabels}
-					presetLabels={defaultConfig.presetLabels}
-					enableFutureDates={true}
-					enablePastDates={false}
-				>
-					<input
-						type="text"
-						class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-violet-500 focus:ring-violet-500"
-						placeholder="Select date"
-						bind:value={formattedDeliveryDate}
-						on:click={toggleDeliveryDatePicker}
-						on:change={onDeliveryChange}
-					/>
-				</DatePicker>
+				<input
+					type="date"
+					class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-800 focus:border-violet-500 focus:ring-violet-500"
+					placeholder="Select date"
+					bind:value={deliveryDate}
+				/>
 			</div>
 			<div class="p-2">
 				<label for="first_name" class="mb-2 block text-sm font-medium text-gray-600"
