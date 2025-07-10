@@ -149,7 +149,7 @@
 
 			<li>
 				<a
-					href="/void/print"
+					href="/center/print"
 					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
 				>
 					<div
@@ -165,7 +165,7 @@
 			</li>
 			<li>
 				<a
-					href="/void/invoice"
+					href="/center/invoice"
 					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
 				>
 					<div
@@ -181,7 +181,7 @@
 			</li>
 			<li>
 				<a
-					href="/void/company"
+					href="/center/company"
 					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
 				>
 					<div

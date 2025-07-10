@@ -6,6 +6,7 @@
 	import SliderMenu from '../app/view/menu/SliderMenu.svelte';
 	import Toast from '../app/view/toast/Toast.svelte';
 	import DesktopModal from '../app/view/modal/DesktopModal.svelte';
+	import { writable } from 'svelte/store';
 
 	const {
 		data,

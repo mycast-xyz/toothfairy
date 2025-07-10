@@ -1,5 +1,5 @@
 node_modules
-.yaml
+pnpm-lock.yaml
 
 # Output
 .output

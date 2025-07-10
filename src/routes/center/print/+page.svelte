@@ -125,7 +125,7 @@
 
 	function handleRowClick(item: any) {
 		console.log(item);
-		goto('/void/show/' + item);
+		goto('/center/show/' + item);
 	}
 
 	function handleSearchClick() {
@@ -137,7 +137,7 @@
 		params.append('type', selectedType);
 		params.append('corpName', $selectedCorpName.toString());
 
-		window.location.href = `/void/print?${params.toString()}`;
+		window.location.href = `/center/print?${params.toString()}`;
 	}
 </script>
 
