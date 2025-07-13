@@ -6,6 +6,11 @@ export const load: LayoutLoad = async ({ params, url, data, fetch }) => {
 	// 🔑 `data` 객체를 통해 `+layout.server.ts`의 반환값(`user`)을 받음
 	const { user } = data;
 
+	// role이 'user'로 설정되는 경우 경고
+	if (user?.role === 'user') {
+		console.warn('Layout Load: role이 "user"로 설정되었습니다!');
+	}
+
 	let isMobile = false;
 	let isNotLayoutPage = false;
 	if (browser) {
@@ -16,11 +21,14 @@ export const load: LayoutLoad = async ({ params, url, data, fetch }) => {
 	}
 	const currentUrl = 'http://' + url.hostname + ':3000';
 
-	return {
+	const result = {
 		params: params.slug,
 		isNotLayoutPage: isNotLayoutPage,
 		isMobile: isMobile,
 		url: currentUrl,
 		user: user
 	};
+
+	console.log('Layout 반환 데이터:', result);
+	return result;
 };

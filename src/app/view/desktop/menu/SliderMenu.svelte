@@ -1,4 +1,18 @@
 <script lang="ts">
+	import {
+		getFilteredMenus,
+		groupMenusBySection,
+		type UserRole
+	} from '../../../model/user/UserRole';
+
+	// props로 데이터 받기
+	const { data } = $props<{ data: any }>();
+
+	// 사용자 권한에 따른 메뉴 필터링
+	const userRole: UserRole = data?.user?.role || 'user';
+	const filteredMenus = getFilteredMenus(userRole);
+	const groupedMenus = groupMenusBySection(filteredMenus);
+
 	/*
 	import { AdminSideMenuService } from '../../service/AdminSiedMenuService';
 
@@ -21,200 +35,39 @@
 	aria-label="Sidebar"
 >
 	<div class="h-full overflow-y-auto bg-white px-3 pb-4 dark:bg-gray-800">
-		<ul class="space-y-2 font-medium">
-			<li>
-				<a
-					href="main"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-home-6-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>대시보드
-					</span>
-				</a>
-			</li>
-			<!--
-			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
+		{#if Object.keys(groupedMenus).length > 0}
+			<ul class="space-y-2 font-medium">
+				{#each Object.entries(groupedMenus) as [section, menus]}
+					{#if section !== '기타'}
+						<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
+						<h3 class="ml-2 text-sm font-medium text-gray-500">{section}</h3>
+					{/if}
 
-			<li>
-				<a
-					href="request"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-edit-box-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>의뢰서 등록
-					</span>
-				</a>
-			</li>-->
-
-			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
-
-			<h3 class="ml-2 text-sm font-medium text-gray-500">치과기공소</h3>
-			<li>
-				<a
-					href="/lab/request"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-file-add-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>의뢰서 등록
-					</span>
-				</a>
-			</li>
-			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
-			<li>
-				<a
-					href="requestlist"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-folder-user-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>의뢰 목록
-					</span>
-				</a>
-			</li>
-			<li>
-				<a
-					href="requestlist"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-compasses-2-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>커스텀 확인
-					</span>
-				</a>
-			</li>
-			<li>
-				<a
-					href="calculate"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-currency-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>정산 목록
-					</span>
-				</a>
-			</li>
-			<li>
-				<a
-					href="delivery"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-truck-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>배송 목록
-					</span>
-				</a>
-			</li>
-
-			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
-
-			<h3 class="ml-2 text-sm font-medium text-gray-500">기공센터</h3>
-
-			<li>
-				<a
-					href="/center/print"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-fingerprint-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>출력물 관리
-					</span>
-				</a>
-			</li>
-			<li>
-				<a
-					href="/center/invoice"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-file-list-3-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>청구서 관리
-					</span>
-				</a>
-			</li>
-			<li>
-				<a
-					href="/center/company"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-building-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>거래처 관리
-					</span>
-				</a>
-			</li>
-
-			<hr class="my-8 h-px border-0 bg-gray-100 dark:bg-gray-800" />
-
-			<li>
-				<a
-					href="setting"
-					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
-				>
-					<div
-						class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-					>
-						<i class="ri-settings-2-line text-xl leading-5"></i>
-					</div>
-					<span
-						class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
-						>설정
-					</span>
-				</a>
-			</li>
-		</ul>
+					{#each menus as menu}
+						<li>
+							<a
+								href={menu.path}
+								class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+							>
+								<div
+									class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+								>
+									<i class="{menu.icon} text-xl leading-5"></i>
+								</div>
+								<span
+									class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+									>{menu.label}
+								</span>
+							</a>
+						</li>
+					{/each}
+				{/each}
+			</ul>
+		{:else}
+			<div class="p-4 text-center text-gray-500">
+				<p>메뉴를 불러오는 중...</p>
+			</div>
+		{/if}
 	</div>
 </aside>
 

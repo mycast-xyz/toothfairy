@@ -3,7 +3,7 @@
 	import '../app.css';
 	import DesktopHeaderMenu from '../app/view/desktop/menu/HeaderMenu.svelte';
 	import MobileHeaderMenu from '../app/view/mobile/menu/HeaderMenu.svelte';
-	import SliderMenu from '../app/view/menu/SliderMenu.svelte';
+	import SliderMenu from '../app/view/desktop/menu/SliderMenu.svelte';
 	import Toast from '../app/view/toast/Toast.svelte';
 	import DesktopModal from '../app/view/modal/DesktopModal.svelte';
 	import { writable } from 'svelte/store';
@@ -32,7 +32,7 @@
 	{:else}
 		<DesktopHeaderMenu title="ToothFairy" infoText="토스트 메시지" />
 		<!-- 슬라이더 메뉴 -->
-		<SliderMenu />
+		<SliderMenu {data} />
 	{/if}
 {/if}
 

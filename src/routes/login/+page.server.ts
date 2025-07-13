@@ -53,31 +53,81 @@ export const actions: Actions = {
 
 		const responseData = await response.json();
 
+		console.log('로그인 성공');
+
 		// 🔑 성공 시, 서버에서 직접 httpOnly 쿠키를 설정
 		if (responseData.accessToken) {
+			// JWT 토큰 디코딩해서 내용 확인
+			try {
+				const payloadPart = responseData.accessToken.split('.')[1];
+				const decoded = JSON.parse(atob(payloadPart));
+				console.log('JWT 토큰 내용:', decoded);
+
+				// role 정보가 없으면 경고
+				if (!decoded.userRole && !decoded.role) {
+					console.error('백엔드 오류: JWT에 role 정보가 없습니다!');
+				}
+
+				// userUUID 정보가 없으면 경고
+				if (!decoded.userUUID) {
+					console.error('백엔드 오류: JWT에 userUUID 정보가 없습니다!');
+				}
+			} catch (error) {
+				console.error('JWT 디코딩 오류:', error);
+			}
+
 			cookies.set('jwt', responseData.accessToken, {
 				path: '/',
 				httpOnly: true,
-				secure: !dev,
+				secure: false, // 개발 환경에서는 false로 설정
 				sameSite: 'strict',
-				maxAge: 5 //* 15 // 15분
+				maxAge: 30 //* 15 // 15분
 			});
+		} else {
+			console.error('Access Token이 없습니다!');
 		}
 		if (responseData.refreshToken) {
 			cookies.set('refreshToken', responseData.refreshToken, {
 				path: '/',
 				httpOnly: true,
-				secure: !dev,
+				secure: false, // 개발 환경에서는 false로 설정
 				sameSite: 'strict',
 				maxAge: 60 * 60 * 24 * 7 // 7일
 			});
+		} else {
+			console.error('Refresh Token이 없습니다!');
+		}
+
+		// JWT 토큰에서 사용자 정보를 추출해서 userInfo 쿠키에 저장
+		try {
+			const payloadPart = responseData.accessToken.split('.')[1];
+			const decoded = JSON.parse(atob(payloadPart));
+
+			const userInfo = {
+				id: decoded.sub || 'unknown',
+				uuid: decoded.userUUID || null,
+				role: decoded.userRole || decoded.role || 'user',
+				name: decoded.name || 'Unknown'
+			};
+
+			// role이 'user'로 설정되는 경우 경고
+			if (userInfo.role === 'user') {
+				console.warn('경고: role이 기본값 "user"로 설정되었습니다.');
+			}
+
+			cookies.set('userInfo', JSON.stringify(userInfo), {
+				path: '/',
+				httpOnly: true,
+				secure: false, // 개발 환경에서는 false로 설정
+				sameSite: 'strict',
+				maxAge: 30 //* 15 // 15분
+			});
+		} catch (error) {
+			console.error('JWT에서 사용자 정보 추출 오류:', error);
 		}
 
 		// 로그인 성공 후 메인 페이지로 리디렉션
-		return {
-			success: true,
-			redirect: '/'
-		};
+		throw redirect(303, '/');
 	},
 
 	/**
@@ -87,6 +137,7 @@ export const actions: Actions = {
 		// 🔑 서버에서 쿠키를 삭제하여 로그아웃 처리
 		cookies.delete('jwt', { path: '/' });
 		cookies.delete('refreshToken', { path: '/' });
+		cookies.delete('userInfo', { path: '/' }); // userInfo 쿠키도 삭제
 
 		// 로그아웃 후 로그인 페이지로 리디렉션
 		throw redirect(303, '/login');

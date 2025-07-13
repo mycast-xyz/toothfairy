@@ -1,9 +1,5 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-
-	import { goto } from '$app/navigation';
-	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
 	import { toastStore } from '../../app/service/ToastService';
 
 	const { data, form } = $props<{ data: any; form: any }>();
@@ -17,7 +13,7 @@
 	$effect(() => {
 		emailError = '';
 		passwordError = '';
-		if (form?.error && form.item) {
+		if (form?.error) {
 			if (form.item === 'email') {
 				emailError = form.message;
 			} else if (form.item === 'password') {
@@ -52,22 +48,7 @@
 				<p class="text-sm text-gray-600">계정에 로그인해주세요</p>
 			</div>
 
-			<form
-				class="flex flex-col gap-4"
-				id="createForm"
-				action="?/login"
-				use:enhance={() => {
-					return async ({ result, update }) => {
-						if (result.type === 'success' && result.data?.success) {
-							toastStore.success('로그인이 완료되었습니다.');
-							goto('/');
-						} else if (result.type === 'failure') {
-							toastStore.error(result.data?.error || '로그인에 실패했습니다.');
-						}
-					};
-				}}
-				method="POST"
-			>
+			<form class="flex flex-col gap-4" id="createForm" action="?/login" method="POST">
 				<div>
 					<label for="idtext" class="mb-1 block text-sm font-medium">이메일</label>
 					<input
