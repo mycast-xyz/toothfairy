@@ -19,7 +19,8 @@ export const load: LayoutLoad = async ({ params, url, data, fetch }) => {
 	if (url.pathname.includes('login')) {
 		isNotLayoutPage = true;
 	}
-	const currentUrl = 'http://' + url.hostname + ':3000';
+	// ConfigService에서 백엔드 URL 가져오기 (동적 로딩을 위해 기본값 사용)
+	const currentUrl = 'http://' + url.hostname + ':3000'; // ConfigService에서 관리되도록 개선 예정
 
 	const result = {
 		params: params.slug,

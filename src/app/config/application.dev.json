@@ -1,0 +1,119 @@
+{
+	"server": {
+		"backend": {
+			"host": "localhost",
+			"port": 3000,
+			"protocol": "http",
+			"baseUrl": "http://localhost:3000"
+		},
+		"socket": {
+			"host": "localhost",
+			"port": 8080,
+			"protocol": "ws",
+			"baseUrl": "ws://localhost:30090"
+		},
+		"frontend": {
+			"host": "localhost",
+			"port": 5173,
+			"protocol": "http",
+			"baseUrl": "http://localhost:5173"
+		}
+	},
+	"api": {
+		"endpoints": {
+			"auth": {
+				"login": "/api/v0/account/login",
+				"logout": "/api/v0/account/logout",
+				"refresh": "/api/v0/account/refresh"
+			},
+			"company": {
+				"list": "/api/v0/corp/list",
+				"add": "/api/v0/corp/add",
+				"update": "/api/v0/corp/update",
+				"delete": "/api/v0/corp/delete"
+			},
+			"file": {
+				"check": "/api/v0/file/chk",
+				"show": "/api/v0/file/show",
+				"item": "/api/v0/file/item"
+			},
+			"invoice": {
+				"list": "/api/v0/invoice/list",
+				"corp": "/api/v0/invoice/corp"
+			},
+			"cam": {
+				"data": {
+					"receipts": "/api/v0/cam/data/receipts",
+					"download": {
+						"single": "/api/v0/cam/data/download/single",
+						"multi": "/api/v0/cam/data/download/multi"
+					}
+				}
+			}
+		}
+	},
+	"socket": {
+		"channels": {
+			"camPrint": "cam/print"
+		},
+		"reconnect": {
+			"maxAttempts": 5,
+			"interval": 3000
+		},
+		"timeout": {
+			"connection": 10000,
+			"message": 5000
+		}
+	},
+	"app": {
+		"name": "ToothFairy",
+		"version": "1.0.0",
+		"environment": "development",
+		"debug": true,
+		"features": {
+			"socket": true,
+			"notifications": true,
+			"mobile": true
+		}
+	},
+	"security": {
+		"jwt": {
+			"secret": "your-jwt-secret-key-dev",
+			"expiresIn": "1h",
+			"refreshExpiresIn": "7d"
+		},
+		"cors": {
+			"origin": ["http://localhost:5173", "http://localhost:3000"],
+			"credentials": true
+		},
+		"cookies": {
+			"accessToken": {
+				"name": "access_token",
+				"httpOnly": true,
+				"secure": false,
+				"sameSite": "lax",
+				"maxAge": 3600000
+			},
+			"refreshToken": {
+				"name": "refresh_token",
+				"httpOnly": true,
+				"secure": false,
+				"sameSite": "lax",
+				"maxAge": 604800000
+			}
+		}
+	},
+	"database": {
+		"type": "sqlite",
+		"host": "localhost",
+		"port": 3306,
+		"name": "toothfairy_dev",
+		"username": "dev_user",
+		"password": "dev_password"
+	},
+	"logging": {
+		"level": "debug",
+		"file": "logs/app-dev.log",
+		"console": true
+	}
+}

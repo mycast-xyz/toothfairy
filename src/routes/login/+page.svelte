@@ -79,13 +79,6 @@
 				>
 					로그인
 				</button>
-				<button
-					type="button"
-					class=" mt-2 flex h-14 items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 hover:bg-gray-50"
-				>
-					<i class="ri-google-fill h-5 w-5"></i>
-					<span>Google로 로그인</span>
-				</button>
 
 				<div class="flex items-center pt-4">
 					<p class="pr-4 text-base font-normal text-gray-400">아직 회원이 아니신가요?</p>

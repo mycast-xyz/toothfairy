@@ -2,6 +2,7 @@ import { redirect, type Handle } from '@sveltejs/kit';
 import { jwtDecode, type JwtPayload } from 'jwt-decode';
 import { PermissionService } from './app/service/auth/PermissionService';
 import type { UserRole } from './app/model/user/UserRole';
+import { configService } from './app/service/ConfigService';
 
 // 사용자 정보를 위한 타입 정의
 type User = {
@@ -18,16 +19,28 @@ type User = {
 // }
 
 // 백엔드 API 주소 (환경 변수로 관리하는 것을 권장합니다)
-const BACKEND_API_URL = 'http://localhost:3000'; // 실제 백엔드 주소로 변경하세요.
+const BACKEND_API_URL = 'http://localhost:3000'; // ConfigService에서 관리되도록 개선 예정
 
 /**
  * 모든 서버 요청을 가로채는 핸들러 함수입니다.
  * 사용자의 인증 상태를 확인하고, 필요 시 토큰을 갱신하며, 페이지 접근을 제어합니다.
  */
 export const handle: Handle = async ({ event, resolve }) => {
+	// 설정에서 쿠키 정보 가져오기
+	const accessTokenConfig = configService.getAccessTokenCookieConfig();
+	const refreshTokenConfig = configService.getRefreshTokenCookieConfig();
+
 	// 1. 쿠키에서 Access Token과 Refresh Token을 가져옵니다.
-	const accessToken = event.cookies.get('jwt');
-	const refreshToken = event.cookies.get('refreshToken');
+	// 기존 쿠키 이름과 새로운 쿠키 이름 모두 확인 (호환성 유지)
+	let accessToken = event.cookies.get(accessTokenConfig?.name || 'jwt');
+	if (!accessToken) {
+		accessToken = event.cookies.get('jwt'); // 기존 쿠키 이름으로도 확인
+	}
+
+	let refreshToken = event.cookies.get(refreshTokenConfig?.name || 'refreshToken');
+	if (!refreshToken) {
+		refreshToken = event.cookies.get('refreshToken'); // 기존 쿠키 이름으로도 확인
+	}
 
 	// 기본적으로 로그아웃 상태로 초기화합니다.
 	// @ts-expect-error - Locals 타입 확장 필요
@@ -39,6 +52,24 @@ export const handle: Handle = async ({ event, resolve }) => {
 			// JWT 페이로드를 직접 디코딩
 			const payloadPart = accessToken.split('.')[1];
 			const decoded = JSON.parse(atob(payloadPart));
+
+			// 테스트 로그: Access Token 디코딩 값 출력
+			console.log('🔍 Access Token 디코딩 테스트:');
+			console.log('🔍 전체 디코딩 값:', decoded);
+			console.log('🔍 만료 시간 (exp):', decoded.exp);
+			console.log('🔍 현재 시간:', Date.now());
+			console.log(
+				'🔍 만료 여부:',
+				decoded.exp ? (decoded.exp * 1000 > Date.now() ? '유효' : '만료') : 'exp 없음'
+			);
+			console.log('🔍 사용자 ID (sub):', decoded.sub);
+			console.log('🔍 사용자 ID (userId):', decoded.userId);
+			console.log('🔍 사용자 UUID (userUUID):', decoded.userUUID);
+			console.log('🔍 사용자 역할 (userRole):', decoded.userRole);
+			console.log('🔍 사용자 역할 (role):', decoded.role);
+			console.log('🔍 사용자 이름 (name):', decoded.name);
+			console.log('🔍 토큰 길이:', accessToken.length);
+			console.log('🔍 토큰 시작 부분:', accessToken.substring(0, 50) + '...');
 
 			if (decoded.exp && decoded.exp * 1000 > Date.now()) {
 				// 2-1. JWT에서 사용자 정보 추출 시도
@@ -152,9 +183,16 @@ async function refreshAccessToken(
 
 		if (!response.ok) {
 			console.error('토큰 갱신 실패: 백엔드에서 에러 응답');
+			// 설정에서 쿠키 정보 가져오기
+			const accessTokenConfig = configService.getAccessTokenCookieConfig();
+			const refreshTokenConfig = configService.getRefreshTokenCookieConfig();
+
 			// 갱신에 실패하면 기존의 만료된 토큰들을 삭제합니다.
-			cookies.delete('jwt', { path: '/' });
-			cookies.delete('refreshToken', { path: '/' });
+			// 기존 쿠키 이름과 새로운 쿠키 이름 모두 삭제 (호환성 유지)
+			cookies.delete(accessTokenConfig?.name || 'jwt', { path: '/' });
+			cookies.delete('jwt', { path: '/' }); // 기존 쿠키도 삭제
+			cookies.delete(refreshTokenConfig?.name || 'refreshToken', { path: '/' });
+			cookies.delete('refreshToken', { path: '/' }); // 기존 쿠키도 삭제
 			return null;
 		}
 
@@ -194,17 +232,36 @@ async function refreshAccessToken(
 			// Access Token 디코딩
 			const accessPayloadPart = newAccessToken.split('.')[1];
 			const accessDecoded = JSON.parse(atob(accessPayloadPart));
-			console.log('새 Access Token 내용:', accessDecoded);
-			console.log('새 Access Token userRole:', accessDecoded.userRole);
-			console.log('새 Access Token role:', accessDecoded.role);
+			console.log('🔍 새 Access Token 디코딩 테스트:');
+			console.log('🔍 전체 디코딩 값:', accessDecoded);
+			console.log('🔍 만료 시간 (exp):', accessDecoded.exp);
+			console.log('🔍 현재 시간:', Date.now());
+			console.log(
+				'🔍 만료 여부:',
+				accessDecoded.exp ? (accessDecoded.exp * 1000 > Date.now() ? '유효' : '만료') : 'exp 없음'
+			);
+			console.log('🔍 사용자 ID (sub):', accessDecoded.sub);
+			console.log('🔍 사용자 ID (userId):', accessDecoded.userId);
+			console.log('🔍 사용자 UUID (userUUID):', accessDecoded.userUUID);
+			console.log('🔍 사용자 역할 (userRole):', accessDecoded.userRole);
+			console.log('🔍 사용자 역할 (role):', accessDecoded.role);
+			console.log('🔍 사용자 이름 (name):', accessDecoded.name);
+			console.log('🔍 토큰 길이:', newAccessToken.length);
+			console.log('🔍 토큰 시작 부분:', newAccessToken.substring(0, 50) + '...');
 
 			// Refresh Token 디코딩 (있는 경우)
 			if (newRefreshToken) {
 				const refreshPayloadPart = newRefreshToken.split('.')[1];
 				const refreshDecoded = JSON.parse(atob(refreshPayloadPart));
-				console.log('새 Refresh Token 내용:', refreshDecoded);
-				console.log('새 Refresh Token userRole:', refreshDecoded.userRole);
-				console.log('새 Refresh Token role:', refreshDecoded.role);
+				console.log('🔍 새 Refresh Token 디코딩 테스트:');
+				console.log('🔍 전체 디코딩 값:', refreshDecoded);
+				console.log('🔍 만료 시간 (exp):', refreshDecoded.exp);
+				console.log('🔍 사용자 ID (sub):', refreshDecoded.sub);
+				console.log('🔍 사용자 UUID (userUUID):', refreshDecoded.userUUID);
+				console.log('🔍 사용자 역할 (userRole):', refreshDecoded.userRole);
+				console.log('🔍 사용자 역할 (role):', refreshDecoded.role);
+				console.log('🔍 토큰 길이:', newRefreshToken.length);
+				console.log('🔍 토큰 시작 부분:', newRefreshToken.substring(0, 50) + '...');
 			} else {
 				console.log('새 Refresh Token이 없습니다.');
 			}
@@ -212,23 +269,29 @@ async function refreshAccessToken(
 			console.error('토큰 디코딩 오류:', error);
 		}
 
+		// 설정에서 쿠키 정보 가져오기
+		const accessTokenConfig = configService.getAccessTokenCookieConfig();
+		const refreshTokenConfig = configService.getRefreshTokenCookieConfig();
+
 		// 새로 발급받은 Access Token을 쿠키에 저장합니다.
-		cookies.set('jwt', newAccessToken, {
+		cookies.set(accessTokenConfig?.name || 'jwt', newAccessToken, {
 			path: '/',
-			httpOnly: true,
-			secure: false, // 개발 환경에서는 false로 설정
-			sameSite: 'strict',
-			maxAge: 10 //* 15 // 15분
+			httpOnly: accessTokenConfig?.httpOnly ?? true,
+			secure: accessTokenConfig?.secure ?? false,
+			sameSite: (accessTokenConfig?.sameSite as 'strict' | 'lax' | 'none') || 'strict',
+			maxAge: accessTokenConfig?.maxAge ? Math.floor(accessTokenConfig.maxAge / 1000) : 60 * 15 // 설정값을 초 단위로 변환
 		});
 
 		// 새로 발급받은 Refresh Token도 쿠키에 저장합니다 (있는 경우)
 		if (newRefreshToken) {
-			cookies.set('refreshToken', newRefreshToken, {
+			cookies.set(refreshTokenConfig?.name || 'refreshToken', newRefreshToken, {
 				path: '/',
-				httpOnly: true,
-				secure: false, // 개발 환경에서는 false로 설정
-				sameSite: 'strict',
-				maxAge: 60 * 60 * 24 * 7 // 7일
+				httpOnly: refreshTokenConfig?.httpOnly ?? true,
+				secure: refreshTokenConfig?.secure ?? false,
+				sameSite: (refreshTokenConfig?.sameSite as 'strict' | 'lax' | 'none') || 'strict',
+				maxAge: refreshTokenConfig?.maxAge
+					? Math.floor(refreshTokenConfig.maxAge / 1000)
+					: 60 * 60 * 24 * 7 // 설정값을 초 단위로 변환
 			});
 			console.log('새 Refresh Token 저장 완료:', `${newRefreshToken.substring(0, 20)}...`);
 		} else {

@@ -34,37 +34,37 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		path: '/lab/request',
 		label: '의뢰서 등록',
 		icon: 'ri-file-add-line',
-		roles: ['all_admin'],
+		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 	{
 		path: 'requestlist',
 		label: '의뢰 목록',
 		icon: 'ri-folder-user-line',
-		roles: ['all_lab'],
+		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 	{
 		path: 'calculate',
 		label: '정산 목록',
 		icon: 'ri-currency-line',
-		roles: ['all_admin'],
+		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 	{
 		path: 'delivery',
 		label: '배송 목록',
 		icon: 'ri-truck-line',
-		roles: ['all_admin'],
+		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 
 	// 캠관리 섹션
 	{
-		path: '/center/print',
+		path: '/cam/print',
 		label: '출력물 관리',
 		icon: 'ri-folder-5-line',
-		roles: ['all_cam'],
+		roles: ['all_cam', 'all_admin'],
 		section: '캠관리'
 	},
 
@@ -73,7 +73,7 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		path: '/center/print',
 		label: '출력물 관리',
 		icon: 'ri-fingerprint-line',
-		roles: ['all_center'],
+		roles: ['all_center', 'all_admin'],
 		section: '기공센터'
 	},
 	{

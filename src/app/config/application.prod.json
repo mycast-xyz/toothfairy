@@ -1,0 +1,94 @@
+{
+	"server": {
+		"backend": {
+			"host": "your-production-backend.com",
+			"port": 3000,
+			"protocol": "https",
+			"baseUrl": "https://your-production-backend.com"
+		},
+		"socket": {
+			"host": "your-production-socket.com",
+			"port": 8080,
+			"protocol": "wss",
+			"baseUrl": "wss://your-production-socket.com"
+		},
+		"frontend": {
+			"host": "your-production-frontend.com",
+			"port": 443,
+			"protocol": "https",
+			"baseUrl": "https://your-production-frontend.com"
+		}
+	},
+	"api": {
+		"endpoints": {
+			"auth": {
+				"login": "/api/v0/account/login",
+				"logout": "/api/v0/account/logout",
+				"refresh": "/api/v0/account/refresh"
+			},
+			"company": {
+				"list": "/api/v0/corp/list",
+				"add": "/api/v0/corp/add",
+				"update": "/api/v0/corp/update",
+				"delete": "/api/v0/corp/delete"
+			},
+			"file": {
+				"check": "/api/v0/file/chk",
+				"show": "/api/v0/file/show",
+				"item": "/api/v0/file/item"
+			},
+			"invoice": {
+				"list": "/api/v0/invoice/list",
+				"corp": "/api/v0/invoice/corp"
+			}
+		}
+	},
+	"socket": {
+		"channels": {
+			"camPrint": "cam/print"
+		},
+		"reconnect": {
+			"maxAttempts": 10,
+			"interval": 5000
+		},
+		"timeout": {
+			"connection": 15000,
+			"message": 10000
+		}
+	},
+	"app": {
+		"name": "ToothFairy",
+		"version": "1.0.0",
+		"environment": "production",
+		"debug": false,
+		"features": {
+			"socket": true,
+			"notifications": true,
+			"mobile": true
+		}
+	},
+	"security": {
+		"jwt": {
+			"secret": "your-production-jwt-secret-key",
+			"expiresIn": "1h",
+			"refreshExpiresIn": "7d"
+		},
+		"cors": {
+			"origin": ["https://your-production-frontend.com"],
+			"credentials": true
+		}
+	},
+	"database": {
+		"type": "mysql",
+		"host": "your-production-db.com",
+		"port": 3306,
+		"name": "toothfairy_prod",
+		"username": "prod_user",
+		"password": "prod_password"
+	},
+	"logging": {
+		"level": "info",
+		"file": "logs/app-prod.log",
+		"console": false
+	}
+}

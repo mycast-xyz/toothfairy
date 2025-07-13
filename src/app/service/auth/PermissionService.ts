@@ -22,16 +22,23 @@ export class PermissionService {
 
 	// 페이지 접근 권한 확인
 	static canAccessPage(userRole: UserRole, pagePath: string): boolean {
+		// all_admin은 모든 페이지에 접근 가능하도록 처리
 		const pagePermissions: Record<string, UserRole[]> = {
 			'/': ['all_admin', 'all_lab', 'all_center', 'all_cam', 'user'], // 메인 페이지는 모든 사용자 접근 가능
 			'/admin': ['all_admin'],
 			'/lab/request': ['all_admin'],
 			'/lab/requestlist': ['all_lab'],
 			'/center/print': ['all_center', 'all_cam'],
+			'/cam/print': ['all_admin', 'all_cam'], // CAM Print 페이지 권한 추가
 			'/center/invoice': ['all_admin'],
 			'/center/company': ['all_admin'],
 			'/settings': ['all_admin']
 		};
+
+		// all_admin이면 무조건 true 반환
+		if (userRole === 'all_admin') {
+			return true;
+		}
 
 		const requiredRoles = pagePermissions[pagePath] || [];
 		return this.hasPermission(userRole, requiredRoles);
