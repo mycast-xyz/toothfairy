@@ -47,7 +47,8 @@
 					"download": {
 						"single": "/api/v0/cam/data/download/single",
 						"multi": "/api/v0/cam/data/download/multi"
-					}
+					},
+					"complete": "/api/v0/cam/data/complete"
 				}
 			}
 		}
@@ -102,14 +103,6 @@
 				"maxAge": 604800000
 			}
 		}
-	},
-	"database": {
-		"type": "sqlite",
-		"host": "localhost",
-		"port": 3306,
-		"name": "toothfairy_dev",
-		"username": "dev_user",
-		"password": "dev_password"
 	},
 	"logging": {
 		"level": "debug",
