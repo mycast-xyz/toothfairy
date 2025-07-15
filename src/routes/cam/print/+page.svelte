@@ -565,10 +565,15 @@
 							class="flex h-3 w-3 rounded-full"
 							style="background-color: {isConnected ? '#22c55e' : '#ef4444'}"
 						></div>
-						<span class="text-sm" style="color: {isConnected ? '#16a34a' : '#dc2626'}">
+						<span class="text-bas3 pt-2" style="color: {isConnected ? '#16a34a' : '#dc2626'}">
 							{isConnected ? 'CAM 실시간 연결됨' : 'CAM 연결 중...'}
 						</span>
 					</div>
+				</div>
+			</div>
+			<!-- 폴더 모니터링 컨트롤 -->
+			<div class="mt-4 border-t border-gray-100 pt-4">
+				<div class="flex items-center justify-between">
 					<!-- 폴더 모니터링 컨트롤-->
 					<div class="flex items-center space-x-4">
 						<span class="text-sm font-medium text-gray-700">폴더 모니터링:</span>
@@ -617,12 +622,7 @@
 							{/if}
 						</div>
 					</div>
-				</div>
-			</div>
 
-			<!-- 폴더 모니터링 컨트롤 -->
-			<div class="mt-4 border-t border-gray-100 pt-4">
-				<div class="flex items-center justify-between">
 					<div class="flex items-center space-x-2">
 						<button
 							on:click={refreshFromDB}
@@ -637,12 +637,6 @@
 						>
 							선택 다운로드
 						</button>
-						<button
-							type="button"
-							class="rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
-						>
-							검색
-						</button>
 					</div>
 				</div>
 			</div>
@@ -650,124 +644,124 @@
 
 		<!-- 실시간 출력물 목록 -->
 		<article class="print-list mt-4">
-			{#if printListData.length > 0}
-				<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
-					<div class="flex flex-row">
-						<!-- 검색 입력창 및 버튼 -->
-						<div class="flex w-full items-center space-x-2 border-b border-gray-200 bg-gray-50 p-4">
-							<input
-								type="text"
-								placeholder="파일명 검색"
-								bind:value={searchQuery}
-								class="w-64 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-								on:keydown={(e) => {
-									if (e.key === 'Enter') filterPrintList();
-								}}
-							/>
+			<div class=" rounded-lg border border-gray-200 bg-white shadow">
+				<div class="flex flex-row">
+					<!-- 검색 입력창 및 버튼 -->
+					<div class="flex w-full items-center space-x-2 border-b border-gray-200 bg-gray-50 p-4">
+						<input
+							type="text"
+							placeholder="파일명 검색"
+							bind:value={searchQuery}
+							class="w-64 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+							on:keydown={(e) => {
+								if (e.key === 'Enter') filterPrintList();
+							}}
+						/>
+						<button
+							class="rounded bg-violet-500 px-4 py-2 text-sm text-white hover:bg-violet-600"
+							on:click={filterPrintList}
+						>
+							검색
+						</button>
+						{#if searchQuery}
 							<button
-								class="rounded bg-violet-500 px-4 py-2 text-sm text-white hover:bg-violet-600"
-								on:click={filterPrintList}
+								class="rounded bg-gray-300 px-2 py-2 text-xs text-gray-700 hover:bg-gray-400"
+								on:click={clearSearch}
 							>
-								검색
+								초기화
 							</button>
-							{#if searchQuery}
-								<button
-									class="rounded bg-gray-300 px-2 py-2 text-xs text-gray-700 hover:bg-gray-400"
-									on:click={clearSearch}
-								>
-									초기화
-								</button>
-							{/if}
-						</div>
+						{/if}
 					</div>
-					<table class="min-w-full divide-y divide-gray-200">
-						<thead class="bg-gray-50">
-							<tr>
-								<th class="p-4">
-									<div class="flex items-center">
-										<input
-											id="checkbox-all"
-											type="checkbox"
-											on:change={toggleAll}
-											checked={allSelected}
-											class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
-										/>
-										<label for="checkbox-all" class="sr-only">checkbox</label>
-									</div>
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									<DropdownFilter
-										label="폴더"
-										options={folderOptions}
-										selected={folderFilter}
-										onSelect={(v) => {
-											folderFilter = v;
-											filterPrintList();
-										}}
-										bgColor="bg-gray-50"
-										textColor="text-gray-500"
-										hoverBgColor="bg-gray-100"
-										hoverTextColor="text-gray-500"
+				</div>
+				<table class="min-w-full divide-y divide-gray-200">
+					<thead class="bg-gray-50">
+						<tr>
+							<th class="p-4">
+								<div class="flex items-center">
+									<input
+										id="checkbox-all"
+										type="checkbox"
+										on:change={toggleAll}
+										checked={allSelected}
+										class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
 									/>
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									<DropdownFilter
-										label="카테고리"
-										options={categoryOptions}
-										selected={categoryFilter}
-										onSelect={(v) => {
-											categoryFilter = v;
-											filterPrintList();
-										}}
-										bgColor="bg-gray-50"
-										textColor="text-gray-500"
-										hoverBgColor="bg-gray-100"
-										hoverTextColor="text-gray-500"
-									/>
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									디렉터리
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									파일명
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									<DropdownFilter
-										label="상태"
-										options={statusOptions}
-										selected={statusFilter}
-										onSelect={(v) => {
-											statusFilter = v;
-											filterPrintList();
-										}}
-										bgColor="bg-gray-50"
-										textColor="text-gray-500"
-										hoverBgColor="bg-gray-100"
-										hoverTextColor="text-gray-500"
-									/>
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									수신시간
-								</th>
-								<th
-									class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-								>
-									작업확인
-								</th>
-							</tr>
-						</thead>
+									<label for="checkbox-all" class="sr-only">checkbox</label>
+								</div>
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								<DropdownFilter
+									label="폴더"
+									options={folderOptions}
+									selected={folderFilter}
+									onSelect={(v) => {
+										folderFilter = v;
+										filterPrintList();
+									}}
+									bgColor="bg-gray-50"
+									textColor="text-gray-500"
+									hoverBgColor="bg-gray-100"
+									hoverTextColor="text-gray-500"
+								/>
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								<DropdownFilter
+									label="카테고리"
+									options={categoryOptions}
+									selected={categoryFilter}
+									onSelect={(v) => {
+										categoryFilter = v;
+										filterPrintList();
+									}}
+									bgColor="bg-gray-50"
+									textColor="text-gray-500"
+									hoverBgColor="bg-gray-100"
+									hoverTextColor="text-gray-500"
+								/>
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								디렉터리
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								파일명
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								<DropdownFilter
+									label="상태"
+									options={statusOptions}
+									selected={statusFilter}
+									onSelect={(v) => {
+										statusFilter = v;
+										filterPrintList();
+									}}
+									bgColor="bg-gray-50"
+									textColor="text-gray-500"
+									hoverBgColor="bg-gray-100"
+									hoverTextColor="text-gray-500"
+								/>
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								수신시간
+							</th>
+							<th
+								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+							>
+								작업확인
+							</th>
+						</tr>
+					</thead>
+					{#if printListData.length > 0}
 						<tbody class="divide-y divide-gray-200 bg-white">
 							{#each printListData as item (item.id)}
 								<tr class="hover:bg-gray-50">
@@ -873,15 +867,21 @@
 								</tr>
 							{/each}
 						</tbody>
-					</table>
-				</div>
-			{:else}
-				<div class="rounded-lg border border-gray-200 bg-white p-8 text-center">
-					<p class="text-gray-500">
-						{isConnected ? '현재 출력 대기 중인 작업이 없습니다.' : '데이터를 불러오는 중...'}
-					</p>
-				</div>
-			{/if}
+					{:else}
+						<tbody class="rounded-lg border border-gray-200 bg-white p-8 text-center">
+							<tr>
+								<td colspan="7" class="text-gray-500">
+									<p class="py-10 text-gray-500">
+										{isConnected
+											? '현재 출력 대기 중인 작업이 없습니다.'
+											: '데이터를 불러오는 중...'}
+									</p>
+								</td>
+							</tr>
+						</tbody>
+					{/if}
+				</table>
+			</div>
 		</article>
 	</article>
 </main>

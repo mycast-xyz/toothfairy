@@ -24,7 +24,7 @@ export const load: PageLoad = async ({ url }) => {
 	await axios
 		.get(
 			currentUrl +
-				'/api/v0/file/chk?date=' +
+				'/api/v0/center/file/chk?date=' +
 				date +
 				'&type=' +
 				typeParam +

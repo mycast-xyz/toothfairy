@@ -33,13 +33,13 @@
 				"delete": "/api/v0/corp/delete"
 			},
 			"file": {
-				"check": "/api/v0/file/chk",
-				"show": "/api/v0/file/show",
-				"item": "/api/v0/file/item"
+				"check": "/api/v0/center/file/chk",
+				"show": "/api/v0/center/file/show",
+				"item": "/api/v0/center/file/item"
 			},
 			"invoice": {
-				"list": "/api/v0/invoice/list",
-				"corp": "/api/v0/invoice/corp"
+				"list": "/api/v0/center/invoice/list",
+				"corp": "/api/v0/center/invoice/corp"
 			},
 			"cam": {
 				"data": {
