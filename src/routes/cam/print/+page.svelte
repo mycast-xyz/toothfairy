@@ -76,6 +76,13 @@
 			barColor: 'bg-green-500'
 		},
 		{
+			title: '오늘 나와야되는 출력물',
+			percent: 32.5,
+			remaining: 650,
+			total: 2000,
+			barColor: 'bg-green-500'
+		},
+		{
 			title: '이번달 출력물',
 			percent: 32.5,
 			remaining: 650,
@@ -125,6 +132,7 @@
 	let unsubscribeProgress: () => void;
 	let unsubscribeFolderStatus: () => void;
 	let unsubscribeFolderNotification: () => void;
+	let unifiedMonitorActive = false; // 통합 모니터링 상태
 
 	onMount(() => {
 		// 사용자 권한 확인
@@ -147,9 +155,8 @@
 		if (!isConnected) {
 			console.log('⚠️ 실시간 연결을 시도 중입니다. 잠시만 기다려주세요.');
 		}
-		// 페이지 진입 시 폴더 모니터링 자동 시작
-		camSocketService.startFolderMonitor('urgent');
-		camSocketService.startFolderMonitor('normal');
+		// 페이지 진입 시 통합 폴더 모니터링 자동 시작
+		camSocketService.startUnifiedFolderMonitor();
 
 		// 구독 등록
 		unsubscribeConnected = camSocketConnected.subscribe((connected) => {
@@ -172,12 +179,12 @@
 		});
 
 		unsubscribeStatus = camPrintStatusData.subscribe((data) => {
-			console.log('camPrintStatusData 구독 데이터:', data.length, data);
+			console.log('[cam/print/+page.svelte] camPrintStatusData 구독 데이터:', data.length, data);
 			realtimePrintData = data;
 			updatePrintListData();
 			originalPrintListData = [...data]; // 항상 최신화!
 			console.log(
-				'originalPrintListData(갱신):',
+				'[cam/print/+page.svelte] originalPrintListData(갱신):',
 				originalPrintListData.length,
 				originalPrintListData
 			);
@@ -189,7 +196,8 @@
 		});
 
 		unsubscribeFolderStatus = folderMonitorStatus.subscribe((status) => {
-			console.log('📁 폴더 모니터링 상태 업데이트:', status);
+			unifiedMonitorActive = !!(status.urgent || status.normal);
+			console.log('📁 통합 폴더 모니터링 상태:', unifiedMonitorActive);
 		});
 
 		unsubscribeFolderNotification = folderMonitorNotification.subscribe((notification) => {
@@ -216,6 +224,10 @@
 
 	// 출력물 목록 데이터 업데이트
 	function updatePrintListData() {
+		console.log(
+			'[cam/print/+page.svelte] updatePrintListData 호출, realtimePrintData:',
+			realtimePrintData
+		);
 		if (realtimePrintData && realtimePrintData.length > 0) {
 			printListData = realtimePrintData.map((item) => ({
 				id: item.id,
@@ -235,10 +247,12 @@
 				directory: item.directory || '',
 				category: item.category || ''
 			}));
+			console.log('[cam/print/+page.svelte] printListData 할당:', printListData);
 			originalPrintListData = [...printListData];
 		} else {
 			printListData = [];
 			originalPrintListData = [];
+			console.log('[cam/print/+page.svelte] printListData 비움');
 		}
 	}
 
@@ -324,9 +338,9 @@
 	// 출력물 상태 한글명 반환
 	function getStatusText(status: string) {
 		const statusTexts: Record<string, string> = {
-			received: '수신됨',
-			processing: '처리중',
-			completed: '완료',
+			received: '다운로드전',
+			processing: '다운로드완료',
+			completed: '가공완료',
 			error: '오류',
 			paused: '일시정지',
 			waiting: '대기중',
@@ -415,18 +429,13 @@
 		return categoryTexts[category] || category;
 	}
 
-	// 폴더 모니터링 시작
-	function startFolderMonitoring(folderType: 'urgent' | 'normal') {
-		camSocketService.startFolderMonitor(folderType);
-		// 토스트 제거 (UI에서 상태가 표시되므로)
-		// showToast('info', `${folderType === 'urgent' ? '긴급' : '일반'} 폴더 모니터링을 시작합니다.`);
+	// 통합 폴더 모니터링 시작
+	function startUnifiedFolderMonitoring() {
+		camSocketService.startUnifiedFolderMonitor();
 	}
-
-	// 폴더 모니터링 중지
-	function stopFolderMonitoring(folderType: 'urgent' | 'normal') {
-		camSocketService.stopFolderMonitor(folderType);
-		// 토스트 제거 (UI에서 상태가 표시되므로)
-		// showToast('warning', `${folderType === 'urgent' ? '긴급' : '일반'} 폴더 모니터링을 중지합니다.`);
+	// 통합 폴더 모니터링 중지
+	function stopUnifiedFolderMonitoring() {
+		camSocketService.stopUnifiedFolderMonitor();
 	}
 
 	// 수동으로 DB에서 최신 리스트 요청
@@ -577,50 +586,23 @@
 					<!-- 폴더 모니터링 컨트롤-->
 					<div class="flex items-center space-x-4">
 						<span class="text-sm font-medium text-gray-700">폴더 모니터링:</span>
-
-						<!-- 긴급 폴더 모니터링 -->
-						<div class="flex items-center space-x-2">
-							<span class="text-sm text-gray-600">긴급</span>
-							{#if $folderMonitorStatus && $folderMonitorStatus.urgent}
-								<button
-									on:click={() => stopFolderMonitoring('urgent')}
-									class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
-								>
-									중지
-								</button>
-								<div class="h-2 w-2 rounded-full bg-green-500"></div>
-							{:else}
-								<button
-									on:click={() => startFolderMonitoring('urgent')}
-									class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
-								>
-									시작
-								</button>
-								<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-							{/if}
-						</div>
-
-						<!-- 일반 폴더 모니터링 -->
-						<div class="flex items-center space-x-2">
-							<span class="text-sm text-gray-600">일반</span>
-							{#if $folderMonitorStatus && $folderMonitorStatus.normal}
-								<button
-									on:click={() => stopFolderMonitoring('normal')}
-									class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
-								>
-									중지
-								</button>
-								<div class="h-2 w-2 rounded-full bg-green-500"></div>
-							{:else}
-								<button
-									on:click={() => startFolderMonitoring('normal')}
-									class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
-								>
-									시작
-								</button>
-								<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-							{/if}
-						</div>
+						{#if unifiedMonitorActive}
+							<button
+								on:click={stopUnifiedFolderMonitoring}
+								class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
+							>
+								중지
+							</button>
+							<div class="h-2 w-2 rounded-full bg-green-500"></div>
+						{:else}
+							<button
+								on:click={startUnifiedFolderMonitoring}
+								class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
+							>
+								시작
+							</button>
+							<div class="h-2 w-2 rounded-full bg-gray-400"></div>
+						{/if}
 					</div>
 
 					<div class="flex items-center space-x-2">

@@ -252,35 +252,41 @@ class CamSocketService {
 			}
 		});
 
-		// 폴더 모니터링 시작 알림
-		this.socket.on('monitor-started', (data) => {
-			console.log('👁️ 폴더 모니터링 시작:', data.folderType);
-			folderMonitorStatus.update((status) => ({
-				...status,
-				[data.folderType]: true
-			}));
-			folderMonitorNotification.set(data.message);
-
-			// 모니터링 시작 시 DB에서 최신 리스트 요청
+		// 통합 폴더 모니터링 시작 알림
+		this.socket.on('unified-monitor-started', (data) => {
+			console.log('🟢 통합 폴더 모니터링 시작 알림:', data);
+			folderMonitorNotification.set(data.message || '통합 폴더 모니터링이 시작되었습니다.');
+			// 통합 모니터링이므로 모든 폴더 상태를 true로 설정 (예시)
+			folderMonitorStatus.update((status) => {
+				const updated = { ...status };
+				Object.keys(updated).forEach((key) => {
+					updated[key as keyof typeof updated] = true;
+				});
+				return updated;
+			});
+			// 최신 리스트 요청
 			this.refreshPrintListFromDB();
 		});
 
-		// 폴더 모니터링 중지 알림
-		this.socket.on('monitor-stopped', (data) => {
-			console.log('⏹️ 폴더 모니터링 중지:', data.folderType);
-			folderMonitorStatus.update((status) => ({
-				...status,
-				[data.folderType]: false
-			}));
-			folderMonitorNotification.set(data.message);
+		// 통합 폴더 모니터링 중지 알림
+		this.socket.on('unified-monitor-stopped', (data) => {
+			console.log('⏹️ 통합 폴더 모니터링 중지 알림:', data);
+			folderMonitorNotification.set(data.message || '통합 폴더 모니터링이 중지되었습니다.');
+			// 통합 모니터링이므로 모든 폴더 상태를 false로 설정 (예시)
+			folderMonitorStatus.update((status) => {
+				const updated = { ...status };
+				Object.keys(updated).forEach((key) => {
+					updated[key as keyof typeof updated] = false;
+				});
+				return updated;
+			});
 		});
 
 		// 폴더 변경 감지 알림
 		this.socket.on('folder-changed', (data) => {
-			console.log('📁 폴더 변경 감지:', data.folderType);
+			console.log('📁 [소켓] folder-changed 이벤트 수신:', data);
 			folderMonitorNotification.set(`폴더 변경이 감지되었습니다: ${data.folderType}`);
-
-			// 폴더 변경 시 DB에서 최신 리스트 요청
+			console.log('📁 [소켓] refreshPrintListFromDB 호출');
 			this.refreshPrintListFromDB();
 		});
 	}
@@ -489,37 +495,36 @@ class CamSocketService {
 		}
 	}
 
-	// 폴더 모니터링 시작 요청
-	startFolderMonitor(folderType: 'urgent' | 'normal') {
+	// 통합 폴더 모니터링 시작 요청
+	startUnifiedFolderMonitor() {
 		if (this.socket?.connected) {
-			console.log(`👁️ 폴더 모니터링 시작 요청: ${folderType}`);
-			this.socket.emit('start-folder-monitor', { folderType });
+			console.log('👁️ 통합 폴더 모니터링 시작 요청');
+			this.socket.emit('start-unified-monitor');
 		} else {
-			console.warn('⚠️ 소켓이 연결되지 않아 폴더 모니터링 시작 요청을 보낼 수 없습니다.');
+			console.warn('⚠️ 소켓이 연결되지 않아 통합 폴더 모니터링 시작 요청을 보낼 수 없습니다.');
 		}
 	}
 
-	// 폴더 모니터링 중지 요청
-	stopFolderMonitor(folderType: 'urgent' | 'normal') {
+	// 통합 폴더 모니터링 중지 요청
+	stopUnifiedFolderMonitor() {
 		if (this.socket?.connected) {
-			console.log(`⏹️ 폴더 모니터링 중지 요청: ${folderType}`);
-			this.socket.emit('stop-folder-monitor', { folderType });
+			console.log('⏹️ 통합 폴더 모니터링 중지 요청');
+			this.socket.emit('stop-unified-monitor');
 		} else {
-			console.warn('⚠️ 소켓이 연결되지 않아 폴더 모니터링 중지 요청을 보낼 수 없습니다.');
+			console.warn('⚠️ 소켓이 연결되지 않아 통합 폴더 모니터링 중지 요청을 보낼 수 없습니다.');
 		}
 	}
 
 	// 폴더 모니터링 데이터 새로고침 (API에서 데이터 가져오기)
 	async refreshPrintListFromDB() {
 		try {
-			console.log('🔄 DB에서 최신 출력물 리스트 요청 중...');
+			console.log('🔄 [refreshPrintListFromDB] DB에서 최신 출력물 리스트 요청 중...');
 
 			const data = await fetchCamPrintListFromApi();
+			console.log('✅ [refreshPrintListFromDB] DB에서 최신 출력물 리스트 가져오기 성공:', data);
 
 			if (data && data.printList) {
-				console.log('✅ DB에서 최신 출력물 리스트 가져오기 성공:', data.printList.length, '개');
-
-				// 소켓 스토어 업데이트
+				console.log('✅ [refreshPrintListFromDB] camPrintStatusData.set 호출:', data.printList);
 				camPrintStatusData.set(data.printList);
 
 				if (data.progressData) {
@@ -527,16 +532,18 @@ class CamSocketService {
 				}
 
 				// 알림 표시 - 토스트 제거, 콘솔 로그만
-				console.log(`📊 최신 데이터를 가져왔습니다: ${data.printList.length}개 출력물`);
+				console.log(
+					`📊 [refreshPrintListFromDB] 최신 데이터를 가져왔습니다: ${data.printList.length}개 출력물`
+				);
 				folderMonitorNotification.set(
 					`최신 데이터를 가져왔습니다: ${data.printList.length}개 출력물`
 				);
 			} else {
-				console.warn('⚠️ DB에서 출력물 리스트를 가져올 수 없습니다.');
+				console.warn('⚠️ [refreshPrintListFromDB] DB에서 출력물 리스트를 가져올 수 없습니다.');
 				folderMonitorNotification.set('데이터를 가져오는데 실패했습니다.');
 			}
 		} catch (error) {
-			console.error('❌ DB에서 출력물 리스트 가져오기 오류:', error);
+			console.error('❌ [refreshPrintListFromDB] DB에서 출력물 리스트 가져오기 오류:', error);
 			camSocketError.set('데이터 새로고침에 실패했습니다.');
 			folderMonitorNotification.set('데이터 새로고침에 실패했습니다.');
 		}
