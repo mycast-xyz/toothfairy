@@ -20,7 +20,9 @@ export const load: PageLoad = async ({ params, url }) => {
 	const date = dateParam ? dateParam : currentDate;
 
 	await axios
-		.get(currentUrl + '/api/v0/invoice/corp?date=' + date + '&corpId=' + slug + '&item=' + item)
+		.get(
+			currentUrl + '/api/v0/center/invoice/corp?date=' + date + '&corpId=' + slug + '&item=' + item
+		)
 		.then((res) => {
 			if (res.data.resultCode === 200) {
 				data = res.data.item;

@@ -10,7 +10,7 @@ export const load: PageLoad = async ({ url, params }) => {
 	const slug = params.slug;
 
 	await axios
-		.get(currentUrl + '/api/v0/file/item?id=' + slug)
+		.get(currentUrl + '/api/v0/center/file/item?id=' + slug)
 		.then((res) => {
 			if (res.data.resultCode === 200) {
 				data = res.data.item;

@@ -33,7 +33,7 @@
 	if (data.info.directory?.files) {
 		stlFiles = data.info.directory.files.map(
 			(file: string) =>
-				`${data.url}/api/v0/file/show?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
+				`${data.url}/api/v0/center/file/show?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
 		);
 
 		stlData = data.info.directory.files.map((file: string, index: number) => ({
