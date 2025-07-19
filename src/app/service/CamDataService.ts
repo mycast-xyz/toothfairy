@@ -3,6 +3,7 @@ import axios from 'axios';
 // DB에서 최신 CAM 출력물 리스트를 API 백엔드 서버에서 받아오는 함수
 import { configService } from './ConfigService';
 import { authService } from './AuthService';
+import { toastStore } from './ToastService';
 
 export async function fetchCamPrintListFromApi() {
 	let printList = [];
@@ -184,5 +185,48 @@ export async function downloadCamFilesAsZip(fileIds: string[]): Promise<void> {
 	} catch (error) {
 		console.error('❌ ZIP 파일 다운로드 중 오류 발생:', error);
 		throw new Error('ZIP 파일 다운로드에 실패했습니다.');
+	}
+}
+
+/**
+ * 파일 고유 번호(id)를 받아 백엔드에 완료처리 API를 호출하고, 결과를 토스트로 알림
+ * @param {string|number} fileId - 완료처리할 파일의 고유 번호
+ * @returns {Promise<void>}
+ */
+export async function completeCamFileById(fileId: string | number): Promise<void> {
+	try {
+		const config = configService.getConfig();
+		if (!config) {
+			throw new Error('설정 정보를 불러올 수 없습니다.');
+		}
+		const backendBaseUrl = config.server.backend.baseUrl;
+		const completeEndpoint = '/api/v0/cam/data/complete'; // 실제 엔드포인트에 맞게 수정
+		const url = `${backendBaseUrl}${completeEndpoint}`;
+
+		console.log('✅ CAM 파일 완료처리 API 호출:', url, '파일ID:', fileId);
+
+		const token = await authService.getJwtToken();
+		const response = await axios.post(
+			url,
+			{ fileId },
+			{
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${token}`
+				},
+				withCredentials: true
+			}
+		);
+
+		const data = response.data;
+		if (data.status === 'ok') {
+			toastStore.success(data.message || '파일이 완료 처리되었습니다.');
+		} else {
+			toastStore.error(data.message || '파일 완료 처리 중 오류가 발생했습니다.');
+		}
+	} catch (error: any) {
+		console.error('❌ 파일 완료 처리 중 오류 발생:', error);
+		const msg = error?.response?.data?.message || error.message || '파일 완료 처리에 실패했습니다.';
+		toastStore.error(msg);
 	}
 }
