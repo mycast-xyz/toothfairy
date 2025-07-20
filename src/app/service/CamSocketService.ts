@@ -98,7 +98,7 @@ class CamSocketService {
 			camSocketError.set(null);
 			this.reconnectAttempts = 0;
 
-			// 연결 후 cam/print 구독 요청
+			// 연결 후 cam/print 구독 요청 (상태 요청은 제거)
 			this.subscribeToCamPrint();
 		});
 
@@ -533,7 +533,7 @@ class CamSocketService {
 	startUnifiedFolderMonitor() {
 		if (this.socket?.connected) {
 			console.log('👁️ 통합 폴더 모니터링 시작 요청');
-			this.socket.emit('start-unified-monitor');
+			this.socket.emit('start-unified-monitor', {});
 		} else {
 			console.warn('⚠️ 소켓이 연결되지 않아 통합 폴더 모니터링 시작 요청을 보낼 수 없습니다.');
 		}
@@ -543,7 +543,7 @@ class CamSocketService {
 	stopUnifiedFolderMonitor() {
 		if (this.socket?.connected) {
 			console.log('⏹️ 통합 폴더 모니터링 중지 요청');
-			this.socket.emit('stop-unified-monitor');
+			this.socket.emit('stop-unified-monitor', {});
 		} else {
 			console.warn('⚠️ 소켓이 연결되지 않아 통합 폴더 모니터링 중지 요청을 보낼 수 없습니다.');
 		}

@@ -38,21 +38,21 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		section: '치과기공소'
 	},
 	{
-		path: 'requestlist',
+		path: '/lab/requestlist',
 		label: '의뢰 목록',
 		icon: 'ri-folder-user-line',
 		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 	{
-		path: 'calculate',
+		path: '/lab/calculate',
 		label: '정산 목록',
 		icon: 'ri-currency-line',
 		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
 	{
-		path: 'delivery',
+		path: '/lab/delivery',
 		label: '배송 목록',
 		icon: 'ri-truck-line',
 		roles: ['all_lab', 'all_admin'],
@@ -93,10 +93,25 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 
 	// 설정 - 관리자만 접근 가능
 	{
-		path: 'setting',
-		label: '설정',
+		path: '/setting/site',
+		label: '사이트 관리',
 		icon: 'ri-settings-2-line',
-		roles: ['all_admin']
+		roles: ['all_admin'],
+		section: '설정'
+	},
+	{
+		path: '/setting/user',
+		label: '사용자 관리',
+		icon: 'ri-id-card-line',
+		roles: ['all_admin'],
+		section: '설정'
+	},
+	{
+		path: '/setting/userrole',
+		label: '사용자 권한 관리',
+		icon: 'ri-user-settings-line',
+		roles: ['all_admin'],
+		section: '설정'
 	}
 ];
 

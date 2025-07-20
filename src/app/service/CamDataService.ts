@@ -5,7 +5,20 @@ import { configService } from './ConfigService';
 import { authService } from './AuthService';
 import { toastStore } from './ToastService';
 
-export async function fetchCamPrintListFromApi() {
+// 필터 파라미터 타입 정의
+export interface CamFilterParams {
+	folderType?: string;
+	status?: string;
+	filename?: string;
+	receivedBy?: string;
+	page?: number;
+	limit?: number;
+	startDate?: string;
+	endDate?: string;
+	title?: string; // 카테고리 필터 추가
+}
+
+export async function fetchCamPrintListFromApi(filterParams?: CamFilterParams) {
 	let printList = [];
 	let progressData = {};
 
@@ -22,7 +35,22 @@ export async function fetchCamPrintListFromApi() {
 			endpoint = `${backendBaseUrl}${camReceiptsEndpoint}`;
 		}
 
-		console.log('🔗 CAM Print API 호출:', endpoint);
+		// 필터 파라미터를 쿼리 스트링으로 변환
+		const queryParams = new URLSearchParams();
+		if (filterParams) {
+			Object.entries(filterParams).forEach(([key, value]) => {
+				if (value !== undefined && value !== null && value !== '') {
+					queryParams.append(key, value.toString());
+				}
+			});
+		}
+
+		// 쿼리 파라미터가 있으면 URL에 추가
+		if (queryParams.toString()) {
+			endpoint += `?${queryParams.toString()}`;
+		}
+
+		console.log('🔗 CAM Print API 호출:', endpoint, '필터:', filterParams);
 
 		const token = await authService.getJwtToken();
 		const response = await axios.get(endpoint, {
@@ -50,7 +78,8 @@ export async function fetchCamPrintListFromApi() {
 
 		console.log('📡 CAM 데이터(백엔드) 수신:', {
 			printList: printList.length,
-			progressData
+			progressData,
+			filterApplied: !!filterParams
 		});
 
 		return {
@@ -228,5 +257,51 @@ export async function completeCamFileById(fileId: string | number): Promise<void
 		console.error('❌ 파일 완료 처리 중 오류 발생:', error);
 		const msg = error?.response?.data?.message || error.message || '파일 완료 처리에 실패했습니다.';
 		toastStore.error(msg);
+	}
+}
+
+/**
+ * CAM 진행률 데이터를 API 백엔드 서버에서 받아오는 함수
+ * @returns {Promise<any>} 진행률 데이터
+ */
+export async function fetchCamProgressFromApi() {
+	try {
+		const config = configService.getConfig();
+
+		let endpoint = '';
+		if (!config) {
+			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
+			endpoint = 'http://localhost:3000/api/v0/cam/data/progress';
+		} else {
+			const backendBaseUrl = config.server.backend.baseUrl;
+			const camProgressEndpoint = config.api.endpoints.cam.progress;
+			endpoint = `${backendBaseUrl}${camProgressEndpoint}`;
+		}
+
+		console.log('🔗 CAM Progress API 호출:', endpoint);
+
+		const token = await authService.getJwtToken();
+		const response = await axios.get(endpoint, {
+			withCredentials: true,
+			headers: {
+				Authorization: `Bearer ${token}`
+			}
+		});
+
+		const apiData = response.data;
+
+		// API 응답 구조에 맞게 수정
+		if (apiData.status === 'ok' && apiData.data) {
+			console.log('📊 CAM 진행률 데이터 수신:', apiData.data);
+			return apiData.data;
+		} else {
+			// 기존 구조도 지원 (호환성)
+			console.log('📊 CAM 진행률 데이터 수신 (기존 구조):', apiData);
+			return apiData;
+		}
+	} catch (error) {
+		console.error('❌ CAM 진행률 데이터 가져오기 오류:', error);
+		const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류';
+		throw new Error(`CAM 진행률 데이터 가져오기 오류: ${errorMessage}`);
 	}
 }

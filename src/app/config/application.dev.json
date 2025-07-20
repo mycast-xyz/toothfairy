@@ -49,7 +49,14 @@
 						"multi": "/api/v0/cam/data/download/multi"
 					},
 					"complete": "/api/v0/cam/data/complete"
-				}
+				},
+				"progress": "/api/v0/cam/data/progress"
+			},
+			"setting": {
+				"users": "/api/v0/setting/users",
+				"user": "/api/v0/setting/user",
+				"userrole": "/api/v0/setting/roles",
+				"site": "/api/v0/setting/site"
 			}
 		}
 	},

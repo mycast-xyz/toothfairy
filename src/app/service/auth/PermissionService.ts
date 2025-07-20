@@ -47,11 +47,11 @@ export class PermissionService {
 	// 사용자 권한 레벨 확인
 	static getPermissionLevel(userRole: UserRole): number {
 		const permissionLevels: Record<UserRole, number> = {
-			user: 10,
-			all_cam: 20,
-			all_center: 30,
-			all_lab: 40,
-			all_admin: 50
+			user: 100,
+			all_cam: 200,
+			all_center: 300,
+			all_lab: 400,
+			all_admin: 500
 		};
 
 		return permissionLevels[userRole] || 1;

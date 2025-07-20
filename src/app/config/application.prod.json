@@ -1,22 +1,22 @@
 {
 	"server": {
 		"backend": {
-			"host": "your-production-backend.com",
+			"host": "localhost",
 			"port": 3000,
-			"protocol": "https",
-			"baseUrl": "https://your-production-backend.com"
+			"protocol": "http",
+			"baseUrl": "http://localhost:3000"
 		},
 		"socket": {
-			"host": "your-production-socket.com",
+			"host": "localhost",
 			"port": 8080,
-			"protocol": "wss",
-			"baseUrl": "wss://your-production-socket.com"
+			"protocol": "ws",
+			"baseUrl": "ws://localhost:30090"
 		},
 		"frontend": {
-			"host": "your-production-frontend.com",
-			"port": 443,
-			"protocol": "https",
-			"baseUrl": "https://your-production-frontend.com"
+			"host": "localhost",
+			"port": 5173,
+			"protocol": "http",
+			"baseUrl": "http://localhost:5173"
 		}
 	},
 	"api": {
@@ -33,13 +33,29 @@
 				"delete": "/api/v0/corp/delete"
 			},
 			"file": {
-				"check": "/api/v0/file/chk",
-				"show": "/api/v0/file/show",
-				"item": "/api/v0/file/item"
+				"check": "/api/v0/center/file/chk",
+				"show": "/api/v0/center/file/show",
+				"item": "/api/v0/center/file/item"
 			},
 			"invoice": {
-				"list": "/api/v0/invoice/list",
-				"corp": "/api/v0/invoice/corp"
+				"list": "/api/v0/center/invoice/list",
+				"corp": "/api/v0/center/invoice/corp"
+			},
+			"cam": {
+				"data": {
+					"receipts": "/api/v0/cam/data/receipts",
+					"download": {
+						"single": "/api/v0/cam/data/download/single",
+						"multi": "/api/v0/cam/data/download/multi"
+					},
+					"complete": "/api/v0/cam/data/complete"
+				}
+			},
+			"setting": {
+				"users": "/api/v0/setting/users",
+				"user": "/api/v0/setting/user",
+				"userrole": "/api/v0/setting/roles",
+				"site": "/api/v0/setting/site"
 			}
 		}
 	},
@@ -48,19 +64,19 @@
 			"camPrint": "cam/print"
 		},
 		"reconnect": {
-			"maxAttempts": 10,
-			"interval": 5000
+			"maxAttempts": 5,
+			"interval": 3000
 		},
 		"timeout": {
-			"connection": 15000,
-			"message": 10000
+			"connection": 10000,
+			"message": 5000
 		}
 	},
 	"app": {
 		"name": "ToothFairy",
 		"version": "1.0.0",
-		"environment": "production",
-		"debug": false,
+		"environment": "development",
+		"debug": true,
 		"features": {
 			"socket": true,
 			"notifications": true,
@@ -69,26 +85,34 @@
 	},
 	"security": {
 		"jwt": {
-			"secret": "your-production-jwt-secret-key",
+			"secret": "your-jwt-secret-key-dev",
 			"expiresIn": "1h",
 			"refreshExpiresIn": "7d"
 		},
 		"cors": {
-			"origin": ["https://your-production-frontend.com"],
+			"origin": ["http://localhost:5173", "http://localhost:3000"],
 			"credentials": true
+		},
+		"cookies": {
+			"accessToken": {
+				"name": "access_token",
+				"httpOnly": true,
+				"secure": false,
+				"sameSite": "lax",
+				"maxAge": 3600000
+			},
+			"refreshToken": {
+				"name": "refresh_token",
+				"httpOnly": true,
+				"secure": false,
+				"sameSite": "lax",
+				"maxAge": 604800000
+			}
 		}
 	},
-	"database": {
-		"type": "mysql",
-		"host": "your-production-db.com",
-		"port": 3306,
-		"name": "toothfairy_prod",
-		"username": "prod_user",
-		"password": "prod_password"
-	},
 	"logging": {
-		"level": "info",
-		"file": "logs/app-prod.log",
-		"console": false
+		"level": "debug",
+		"file": "logs/app-dev.log",
+		"console": true
 	}
 }

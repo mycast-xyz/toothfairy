@@ -33,7 +33,7 @@
 	if (data.info.directory?.files) {
 		stlFiles = data.info.directory.files.map(
 			(file: string) =>
-				`${data.url}/api/v0/center/file/show?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
+				`${data.url}${data.endpoints.fileShow}?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
 		);
 
 		stlData = data.info.directory.files.map((file: string, index: number) => ({
@@ -122,7 +122,7 @@
 	const handleApiResponse = async (response: any) => {
 		if (response === 'normal') {
 			try {
-				const response = await fetch(`${data.url}/api/v0/data/create/ok`, {
+				const response = await fetch(`${data.url}${data.endpoints.dataCreateOk}`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -145,7 +145,7 @@
 			}
 		} else if (response === 'remake') {
 			try {
-				const response = await fetch(`${data.url}/api/v0/data/create/re`, {
+				const response = await fetch(`${data.url}${data.endpoints.dataCreateRe}`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'

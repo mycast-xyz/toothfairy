@@ -1,139 +1,62 @@
 import { writable } from 'svelte/store';
 
-// 설정 타입 정의
-export interface ServerConfig {
-	backend: {
-		host: string;
-		port: number;
-		protocol: string;
-		baseUrl: string;
+// 기본 타입 정의 (필수 설정들)
+export interface BaseConfig {
+	server: {
+		backend: {
+			host: string;
+			port: number;
+			protocol: string;
+			baseUrl: string;
+		};
+		socket: {
+			host: string;
+			port: number;
+			protocol: string;
+			baseUrl: string;
+		};
+		frontend: {
+			host: string;
+			port: number;
+			protocol: string;
+			baseUrl: string;
+		};
 	};
-	socket: {
-		host: string;
-		port: number;
-		protocol: string;
-		baseUrl: string;
+	api: {
+		endpoints: Record<string, any>;
 	};
-	frontend: {
-		host: string;
-		port: number;
-		protocol: string;
-		baseUrl: string;
+	app: {
+		name: string;
+		version: string;
+		environment: string;
+		debug: boolean;
+		features: Record<string, boolean>;
+	};
+	security: {
+		jwt: {
+			secret: string;
+			expiresIn: string;
+			refreshExpiresIn: string;
+		};
+		cors: {
+			origin: string[];
+			credentials: boolean;
+		};
+		cookies: Record<
+			string,
+			{
+				name: string;
+				httpOnly: boolean;
+				secure: boolean;
+				sameSite: string;
+				maxAge: number;
+			}
+		>;
 	};
 }
 
-export interface ApiConfig {
-	endpoints: {
-		auth: {
-			login: string;
-			logout: string;
-			refresh: string;
-		};
-		company: {
-			list: string;
-			add: string;
-			update: string;
-			delete: string;
-		};
-		file: {
-			check: string;
-			show: string;
-			item: string;
-		};
-		invoice: {
-			list: string;
-			corp: string;
-		};
-		cam: {
-			data: {
-				receipts: string;
-				download: {
-					single: string;
-					multi: string;
-				};
-			};
-		};
-	};
-}
-
-export interface SocketConfig {
-	channels: {
-		camPrint: string;
-	};
-	reconnect: {
-		maxAttempts: number;
-		interval: number;
-	};
-	timeout: {
-		connection: number;
-		message: number;
-	};
-}
-
-export interface AppConfig {
-	name: string;
-	version: string;
-	environment: string;
-	debug: boolean;
-	features: {
-		socket: boolean;
-		notifications: boolean;
-		mobile: boolean;
-	};
-}
-
-export interface SecurityConfig {
-	jwt: {
-		secret: string;
-		expiresIn: string;
-		refreshExpiresIn: string;
-	};
-	cors: {
-		origin: string[];
-		credentials: boolean;
-	};
-	cookies: {
-		accessToken: {
-			name: string;
-			httpOnly: boolean;
-			secure: boolean;
-			sameSite: string;
-			maxAge: number;
-		};
-		refreshToken: {
-			name: string;
-			httpOnly: boolean;
-			secure: boolean;
-			sameSite: string;
-			maxAge: number;
-		};
-	};
-}
-
-export interface DatabaseConfig {
-	type: string;
-	host: string;
-	port: number;
-	name: string;
-	username: string;
-	password: string;
-}
-
-export interface LoggingConfig {
-	level: string;
-	file: string;
-	console: boolean;
-}
-
-export interface ApplicationConfig {
-	server: ServerConfig;
-	api: ApiConfig;
-	socket: SocketConfig;
-	app: AppConfig;
-	security: SecurityConfig;
-	database: DatabaseConfig;
-	logging: LoggingConfig;
-}
+// 확장 가능한 설정 타입 (JSON 파일의 모든 속성을 허용)
+export type ApplicationConfig = BaseConfig & Record<string, any>;
 
 // 설정 스토어
 export const configStore = writable<ApplicationConfig | null>(null);
@@ -161,7 +84,9 @@ class ConfigService {
 				try {
 					const response = await fetch(configPath);
 					if (response.ok) {
-						this.config = await response.json();
+						const loadedConfig = await response.json();
+						// 기본 설정과 병합
+						this.config = this.mergeWithDefaults(loadedConfig);
 					} else {
 						// 설정 파일을 찾을 수 없는 경우 기본값 사용
 						this.config = this.getDefaultConfig();
@@ -184,6 +109,31 @@ class ConfigService {
 			this.config = this.getDefaultConfig();
 			configStore.set(this.config);
 		}
+	}
+
+	/**
+	 * 로드된 설정을 기본값과 병합
+	 */
+	private mergeWithDefaults(loadedConfig: any): ApplicationConfig {
+		const defaults = this.getDefaultConfig();
+		return this.deepMerge(defaults, loadedConfig);
+	}
+
+	/**
+	 * 깊은 병합 함수
+	 */
+	private deepMerge(target: any, source: any): any {
+		const result = { ...target };
+
+		for (const key in source) {
+			if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+				result[key] = this.deepMerge(target[key] || {}, source[key]);
+			} else {
+				result[key] = source[key];
+			}
+		}
+
+		return result;
 	}
 
 	/**
@@ -241,6 +191,12 @@ class ConfigService {
 								multi: '/api/v0/cam/data/download/multi'
 							}
 						}
+					},
+					setting: {
+						users: '/api/v0/setting/users',
+						user: '/api/v0/setting/user',
+						userrole: '/api/v0/setting/roles',
+						site: '/api/v0/setting/site'
 					}
 				}
 			},
@@ -319,9 +275,39 @@ class ConfigService {
 	}
 
 	/**
+	 * 동적 설정 값 가져오기 (점 표기법 지원)
+	 * 예: get('server.backend.host') -> 'localhost'
+	 * 예: get('api.endpoints.auth.login') -> '/api/v0/account/login'
+	 */
+	get(path: string): any {
+		if (!this.config) return null;
+
+		return path.split('.').reduce((obj, key) => {
+			return obj && obj[key] !== undefined ? obj[key] : null;
+		}, this.config);
+	}
+
+	/**
+	 * 동적 설정 값 설정하기 (점 표기법 지원)
+	 */
+	set(path: string, value: any): void {
+		if (!this.config) return;
+
+		const keys = path.split('.');
+		const lastKey = keys.pop()!;
+		const target = keys.reduce((obj, key) => {
+			if (!obj[key]) obj[key] = {};
+			return obj[key];
+		}, this.config);
+
+		target[lastKey] = value;
+		configStore.set(this.config);
+	}
+
+	/**
 	 * 서버 설정 반환
 	 */
-	getServerConfig(): ServerConfig | null {
+	getServerConfig(): BaseConfig['server'] | null {
 		return this.config?.server || null;
 	}
 
@@ -329,75 +315,84 @@ class ConfigService {
 	 * 백엔드 서버 URL 반환
 	 */
 	getBackendUrl(): string {
-		return this.config?.server.backend.baseUrl || 'http://localhost:3000';
+		return this.get('server.backend.baseUrl') || 'http://localhost:3000';
 	}
 
 	/**
 	 * 소켓 서버 URL 반환
 	 */
 	getSocketUrl(): string {
-		return this.config?.server.socket.baseUrl || 'ws://localhost:30090';
+		return this.get('server.socket.baseUrl') || 'ws://localhost:30090';
 	}
 
 	/**
-	 * API 엔드포인트 반환
+	 * API 엔드포인트 반환 (유연한 방식)
 	 */
-	getApiEndpoint(category: keyof ApiConfig['endpoints'], endpoint: string): string {
-		const endpoints = this.config?.api.endpoints;
-		if (
-			endpoints &&
-			endpoints[category] &&
-			endpoints[category][endpoint as keyof (typeof endpoints)[typeof category]]
-		) {
-			return endpoints[category][endpoint as keyof (typeof endpoints)[typeof category]];
+	getApiEndpoint(category: string, endpoint: string): string {
+		const endpoints = this.get(`api.endpoints.${category}`);
+		if (endpoints && endpoints[endpoint]) {
+			return endpoints[endpoint];
 		}
 		return '';
 	}
 
 	/**
+	 * 중첩된 API 엔드포인트 반환
+	 * 예: getNestedApiEndpoint('cam', 'data.download.single')
+	 */
+	getNestedApiEndpoint(category: string, path: string): string {
+		const endpoints = this.get(`api.endpoints.${category}`);
+		if (!endpoints) return '';
+
+		return path.split('.').reduce((obj, key) => {
+			return obj && obj[key] !== undefined ? obj[key] : '';
+		}, endpoints);
+	}
+
+	/**
 	 * 소켓 설정 반환
 	 */
-	getSocketConfig(): SocketConfig | null {
+	getSocketConfig(): any {
 		return this.config?.socket || null;
 	}
 
 	/**
 	 * 앱 설정 반환
 	 */
-	getAppConfig(): AppConfig | null {
+	getAppConfig(): BaseConfig['app'] | null {
 		return this.config?.app || null;
 	}
 
 	/**
 	 * 보안 설정 반환
 	 */
-	getSecurityConfig(): SecurityConfig | null {
+	getSecurityConfig(): BaseConfig['security'] | null {
 		return this.config?.security || null;
 	}
 
-	getCookieConfig(): SecurityConfig['cookies'] | null {
-		return this.config?.security?.cookies || null;
+	getCookieConfig(): BaseConfig['security']['cookies'] | null {
+		return this.get('security.cookies') || null;
 	}
 
-	getAccessTokenCookieConfig(): SecurityConfig['cookies']['accessToken'] | null {
-		return this.config?.security?.cookies?.accessToken || null;
+	getAccessTokenCookieConfig(): BaseConfig['security']['cookies']['accessToken'] | null {
+		return this.get('security.cookies.accessToken') || null;
 	}
 
-	getRefreshTokenCookieConfig(): SecurityConfig['cookies']['refreshToken'] | null {
-		return this.config?.security?.cookies?.refreshToken || null;
+	getRefreshTokenCookieConfig(): BaseConfig['security']['cookies']['refreshToken'] | null {
+		return this.get('security.cookies.refreshToken') || null;
 	}
 
 	/**
 	 * 데이터베이스 설정 반환
 	 */
-	getDatabaseConfig(): DatabaseConfig | null {
+	getDatabaseConfig(): any {
 		return this.config?.database || null;
 	}
 
 	/**
 	 * 로깅 설정 반환
 	 */
-	getLoggingConfig(): LoggingConfig | null {
+	getLoggingConfig(): any {
 		return this.config?.logging || null;
 	}
 
@@ -412,14 +407,14 @@ class ConfigService {
 	 * 디버그 모드 여부 반환
 	 */
 	isDebug(): boolean {
-		return this.config?.app.debug || false;
+		return this.get('app.debug') || false;
 	}
 
 	/**
 	 * 특정 기능 활성화 여부 반환
 	 */
-	isFeatureEnabled(feature: keyof AppConfig['features']): boolean {
-		return this.config?.app.features[feature] || false;
+	isFeatureEnabled(feature: string): boolean {
+		return this.get(`app.features.${feature}`) || false;
 	}
 
 	/**
@@ -427,6 +422,61 @@ class ConfigService {
 	 */
 	async reloadConfig(): Promise<void> {
 		await this.loadConfig();
+	}
+
+	/**
+	 * 설정 유효성 검사
+	 */
+	validateConfig(): { isValid: boolean; errors: string[] } {
+		const errors: string[] = [];
+
+		if (!this.config) {
+			errors.push('설정이 로드되지 않았습니다.');
+			return { isValid: false, errors };
+		}
+
+		// 필수 설정 검사
+		const requiredPaths = [
+			'server.backend.baseUrl',
+			'server.socket.baseUrl',
+			'app.name',
+			'app.environment',
+			'security.jwt.secret'
+		];
+
+		requiredPaths.forEach((path) => {
+			if (!this.get(path)) {
+				errors.push(`필수 설정이 누락되었습니다: ${path}`);
+			}
+		});
+
+		return {
+			isValid: errors.length === 0,
+			errors
+		};
+	}
+
+	/**
+	 * 설정이 로드되었는지 확인
+	 */
+	isConfigLoaded(): boolean {
+		return this.config !== null;
+	}
+
+	/**
+	 * 설정 로딩 대기
+	 */
+	async waitForConfig(maxWaitTime: number = 5000): Promise<boolean> {
+		const startTime = Date.now();
+
+		while (Date.now() - startTime < maxWaitTime) {
+			if (this.config !== null) {
+				return true;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 100));
+		}
+
+		return false;
 	}
 }
 
@@ -436,8 +486,11 @@ export const configService = new ConfigService();
 // 편의 함수들
 export const getBackendUrl = () => configService.getBackendUrl();
 export const getSocketUrl = () => configService.getSocketUrl();
-export const getApiEndpoint = (category: keyof ApiConfig['endpoints'], endpoint: string) =>
+export const getApiEndpoint = (category: string, endpoint: string) =>
 	configService.getApiEndpoint(category, endpoint);
+export const getNestedApiEndpoint = (category: string, path: string) =>
+	configService.getNestedApiEndpoint(category, path);
 export const isDebug = () => configService.isDebug();
-export const isFeatureEnabled = (feature: keyof AppConfig['features']) =>
-	configService.isFeatureEnabled(feature);
+export const isFeatureEnabled = (feature: string) => configService.isFeatureEnabled(feature);
+export const getConfig = (path: string) => configService.get(path);
+export const setConfig = (path: string, value: any) => configService.set(path, value);

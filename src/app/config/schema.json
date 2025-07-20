@@ -1,0 +1,146 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"type": "object",
+	"properties": {
+		"server": {
+			"type": "object",
+			"properties": {
+				"backend": {
+					"type": "object",
+					"properties": {
+						"host": { "type": "string" },
+						"port": { "type": "number" },
+						"protocol": { "type": "string" },
+						"baseUrl": { "type": "string" }
+					},
+					"required": ["host", "port", "protocol", "baseUrl"]
+				},
+				"socket": {
+					"type": "object",
+					"properties": {
+						"host": { "type": "string" },
+						"port": { "type": "number" },
+						"protocol": { "type": "string" },
+						"baseUrl": { "type": "string" }
+					},
+					"required": ["host", "port", "protocol", "baseUrl"]
+				},
+				"frontend": {
+					"type": "object",
+					"properties": {
+						"host": { "type": "string" },
+						"port": { "type": "number" },
+						"protocol": { "type": "string" },
+						"baseUrl": { "type": "string" }
+					},
+					"required": ["host", "port", "protocol", "baseUrl"]
+				}
+			},
+			"required": ["backend", "socket", "frontend"]
+		},
+		"api": {
+			"type": "object",
+			"properties": {
+				"endpoints": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "object",
+						"additionalProperties": {
+							"oneOf": [{ "type": "string" }, { "type": "object" }]
+						}
+					}
+				}
+			},
+			"required": ["endpoints"]
+		},
+		"socket": {
+			"type": "object",
+			"properties": {
+				"channels": {
+					"type": "object",
+					"additionalProperties": { "type": "string" }
+				},
+				"reconnect": {
+					"type": "object",
+					"properties": {
+						"maxAttempts": { "type": "number" },
+						"interval": { "type": "number" }
+					}
+				},
+				"timeout": {
+					"type": "object",
+					"properties": {
+						"connection": { "type": "number" },
+						"message": { "type": "number" }
+					}
+				}
+			}
+		},
+		"app": {
+			"type": "object",
+			"properties": {
+				"name": { "type": "string" },
+				"version": { "type": "string" },
+				"environment": { "type": "string" },
+				"debug": { "type": "boolean" },
+				"features": {
+					"type": "object",
+					"additionalProperties": { "type": "boolean" }
+				}
+			}
+		},
+		"security": {
+			"type": "object",
+			"properties": {
+				"jwt": {
+					"type": "object",
+					"properties": {
+						"secret": { "type": "string" },
+						"expiresIn": { "type": "string" },
+						"refreshExpiresIn": { "type": "string" }
+					}
+				},
+				"cors": {
+					"type": "object",
+					"properties": {
+						"origin": { "type": "array", "items": { "type": "string" } },
+						"credentials": { "type": "boolean" }
+					}
+				},
+				"cookies": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "object",
+						"properties": {
+							"name": { "type": "string" },
+							"httpOnly": { "type": "boolean" },
+							"secure": { "type": "boolean" },
+							"sameSite": { "type": "string" },
+							"maxAge": { "type": "number" }
+						}
+					}
+				}
+			}
+		},
+		"database": {
+			"type": "object",
+			"properties": {
+				"type": { "type": "string" },
+				"host": { "type": "string" },
+				"port": { "type": "number" },
+				"name": { "type": "string" },
+				"username": { "type": "string" },
+				"password": { "type": "string" }
+			}
+		},
+		"logging": {
+			"type": "object",
+			"properties": {
+				"level": { "type": "string" },
+				"file": { "type": "string" },
+				"console": { "type": "boolean" }
+			}
+		}
+	},
+	"required": ["server", "api", "app", "security"]
+}

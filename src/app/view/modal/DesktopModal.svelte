@@ -3,6 +3,10 @@
 	import DesktopModal from '../../view-framework/modal/DesktopModal.svelte';
 	import AddCompany from '../company/AddCompany.svelte';
 	import EditCompany from '../company/EditCompany.svelte';
+	import AddUserRole from '../userrole/AddUserRole.svelte';
+	import EditUserRole from '../userrole/EditUserRole.svelte';
+	import DeleteConfirmModal from '../userrole/DeleteConfirmModal.svelte';
+	import EditUserRoleModal from '../userrole/EditUserRoleModal.svelte';
 	// props에서 데이터 가져오기
 	//const { data } = $props<{ data: any }>();
 
@@ -21,6 +25,26 @@
 				ModalComponent = EditCompany;
 				ModalTitle = '센터 거래처 수정';
 				ModalSize = 'large';
+				break;
+			case 'userrole-add':
+				ModalComponent = AddUserRole;
+				ModalTitle = '새 역할 추가';
+				ModalSize = 'default';
+				break;
+			case 'userrole-edit':
+				ModalComponent = EditUserRole;
+				ModalTitle = '역할 수정';
+				ModalSize = 'default';
+				break;
+			case 'delete-confirm':
+				ModalComponent = DeleteConfirmModal;
+				ModalTitle = '삭제 확인';
+				ModalSize = 'small';
+				break;
+			case 'edit-user-role':
+				ModalComponent = EditUserRoleModal;
+				ModalTitle = '사용자 권한 수정';
+				ModalSize = 'default';
 				break;
 			default:
 				ModalTitle = '';
