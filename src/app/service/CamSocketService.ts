@@ -256,7 +256,8 @@ class CamSocketService {
 		this.socket.on('unified-monitor-started', (data) => {
 			console.log('🟢 통합 폴더 모니터링 시작 알림:', data);
 			folderMonitorNotification.set(data.message || '통합 폴더 모니터링이 시작되었습니다.');
-			// 통합 모니터링이므로 모든 폴더 상태를 true로 설정 (예시)
+
+			// 통합 모니터링이므로 모든 폴더 상태를 true로 설정
 			folderMonitorStatus.update((status) => {
 				const updated = { ...status };
 				Object.keys(updated).forEach((key) => {
@@ -264,6 +265,7 @@ class CamSocketService {
 				});
 				return updated;
 			});
+
 			// 최신 리스트 요청
 			this.refreshPrintListFromDB();
 		});
@@ -272,7 +274,8 @@ class CamSocketService {
 		this.socket.on('unified-monitor-stopped', (data) => {
 			console.log('⏹️ 통합 폴더 모니터링 중지 알림:', data);
 			folderMonitorNotification.set(data.message || '통합 폴더 모니터링이 중지되었습니다.');
-			// 통합 모니터링이므로 모든 폴더 상태를 false로 설정 (예시)
+
+			// 통합 모니터링이므로 모든 폴더 상태를 false로 설정
 			folderMonitorStatus.update((status) => {
 				const updated = { ...status };
 				Object.keys(updated).forEach((key) => {
@@ -280,6 +283,37 @@ class CamSocketService {
 				});
 				return updated;
 			});
+		});
+
+		// 개별 폴더 모니터링 시작 알림
+		this.socket.on('folder-monitor-started', (data) => {
+			console.log('🟢 개별 폴더 모니터링 시작 알림:', data);
+			folderMonitorNotification.set(data.message || '폴더 모니터링이 시작되었습니다.');
+
+			// 개별 폴더 모니터링
+			if (data.folderType === 'urgent' || data.folderType === 'normal') {
+				folderMonitorStatus.update((status) => ({
+					...status,
+					[data.folderType]: true
+				}));
+			}
+
+			// 최신 리스트 요청
+			this.refreshPrintListFromDB();
+		});
+
+		// 개별 폴더 모니터링 중지 알림
+		this.socket.on('folder-monitor-stopped', (data) => {
+			console.log('⏹️ 개별 폴더 모니터링 중지 알림:', data);
+			folderMonitorNotification.set(data.message || '폴더 모니터링이 중지되었습니다.');
+
+			// 개별 폴더 모니터링
+			if (data.folderType === 'urgent' || data.folderType === 'normal') {
+				folderMonitorStatus.update((status) => ({
+					...status,
+					[data.folderType]: false
+				}));
+			}
 		});
 
 		// 폴더 변경 감지 알림
@@ -512,6 +546,30 @@ class CamSocketService {
 			this.socket.emit('stop-unified-monitor');
 		} else {
 			console.warn('⚠️ 소켓이 연결되지 않아 통합 폴더 모니터링 중지 요청을 보낼 수 없습니다.');
+		}
+	}
+
+	// 개별 폴더 모니터링 시작 요청
+	startFolderMonitor(folderType: 'urgent' | 'normal') {
+		if (this.socket?.connected) {
+			console.log(`👁️ ${folderType} 폴더 모니터링 시작 요청`);
+			this.socket.emit('start-folder-monitor', { folderType });
+		} else {
+			console.warn(
+				`⚠️ 소켓이 연결되지 않아 ${folderType} 폴더 모니터링 시작 요청을 보낼 수 없습니다.`
+			);
+		}
+	}
+
+	// 개별 폴더 모니터링 중지 요청
+	stopFolderMonitor(folderType: 'urgent' | 'normal') {
+		if (this.socket?.connected) {
+			console.log(`⏹️ ${folderType} 폴더 모니터링 중지 요청`);
+			this.socket.emit('stop-folder-monitor', { folderType });
+		} else {
+			console.warn(
+				`⚠️ 소켓이 연결되지 않아 ${folderType} 폴더 모니터링 중지 요청을 보낼 수 없습니다.`
+			);
 		}
 	}
 
