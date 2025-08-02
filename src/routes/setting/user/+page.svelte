@@ -8,6 +8,7 @@
 		userActions
 	} from '../../../app/service/user/UserStore';
 	import Toast from '../../../app/view/toast/Toast.svelte';
+	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 
 	// 페이지 로드 시 데이터 가져오기
 	onMount(() => {
@@ -46,62 +47,30 @@
 </script>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
-	<article class="w-full pl-3 pr-5 pt-3">
-		<nav
-			class="user-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
-		>
-			<div class="user-list-title flex w-full flex-row">
-				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">사용자 관리</h3>
-				</div>
+	<article class="w-full">
+		<PageHeaderBar title="사용자 관리" description="사용자 관리 페이지입니다.">
+			<div class="flex flex-wrap items-center gap-2">
+				<!-- 필터 초기화 -->
+				<button
+					type="button"
+					onclick={clearFilters}
+					class="h-10 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300"
+				>
+					<i class="ri-delete-bin-line pr-1 text-base"></i>
+					초기화
+				</button>
+
+				<!-- 새로고침 -->
+				<button
+					type="button"
+					onclick={reloadData}
+					class="h-10 rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300"
+				>
+					<i class="ri-refresh-line pr-1 text-base"></i>
+					재로드
+				</button>
 			</div>
-
-			<!-- 검색 및 필터 -->
-			<div class="nav-search-box mt-4 border-t border-gray-100 pt-4">
-				<div class="flex flex-wrap items-center gap-4">
-					<!-- 검색 입력 -->
-					<div class="relative">
-						<input
-							type="text"
-							class="h-10 w-64 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							placeholder="이름 또는 이메일로 검색..."
-							bind:value={$userStore.searchTerm}
-						/>
-					</div>
-
-					<!-- 역할 필터 -->
-					<div class="relative">
-						<select
-							class="h-10 w-40 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
-							bind:value={$userStore.selectedRole}
-						>
-							<option value="">모든 역할</option>
-							{#each $userStore.roles as role}
-								<option value={role.id}>{role.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<!-- 필터 초기화 -->
-					<button
-						type="button"
-						onclick={clearFilters}
-						class="h-10 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300"
-					>
-						초기화
-					</button>
-
-					<!-- 새로고침 -->
-					<button
-						type="button"
-						onclick={reloadData}
-						class="h-10 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300"
-					>
-						재로드
-					</button>
-				</div>
-			</div>
-		</nav>
+		</PageHeaderBar>
 
 		<!-- 메시지 표시 -->
 		{#if $userStore.error}
@@ -127,12 +96,69 @@
 
 		<!-- 사용자 목록 테이블 -->
 		<article class="user-list">
-			<div class="mt-6 flex flex-col">
+			<div class="flex flex-col">
 				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
 						<div
 							class="overflow-auto border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg"
 						>
+							<!-- 상단 탭 및 필터 바 UI (이미지 참고) -->
+							<div class="user-tab-bar w-full border-b border-gray-200 bg-white">
+								<div class="flex flex-wrap items-center justify-between">
+									<!-- 탭 메뉴 -->
+									<div class="flex w-full px-2 pt-2">
+										<button
+											class="tab-btn min-w-24 border-b-2 border-violet-500 px-4 py-3 pt-2 text-sm font-semibold text-violet-600 focus:outline-none"
+											disabled
+										>
+											전체
+										</button>
+										<button
+											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+											disabled
+										>
+											승인대기
+										</button>
+										<button
+											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+											disabled
+										>
+											승인됨
+										</button>
+									</div>
+									<!-- 오른쪽 필터/검색 -->
+									<div
+										class="flex w-full items-center gap-2 border-t border-gray-200 bg-gray-100 px-2 py-4"
+									>
+										<!-- 검색 입력 -->
+										<div class="relative">
+											<div class="relative">
+												<i
+													class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+												></i>
+												<input
+													type="text"
+													class="h-12 w-80 rounded border border-gray-300 py-4 pl-8 pr-2 text-sm text-gray-600 placeholder-gray-400 focus:border-violet-500 focus:outline-none"
+													placeholder="이름을 적어주세요 (예: 홍길동)"
+													bind:value={$userStore.searchTerm}
+												/>
+											</div>
+										</div>
+										<!-- 상태 필터 select (예시 코드와 동일하게 구현) -->
+										<div class="relative ml-auto">
+											<select
+												class="h-12 w-32 rounded border border-gray-300 px-2 py-1 text-sm focus:border-violet-500 focus:outline-none"
+												bind:value={$userStore.selectedRole}
+											>
+												<option value="">모든 역할</option>
+												<option value="admin">관리자</option>
+												<option value="user">일반 사용자</option>
+												<option value="manager">매니저</option>
+											</select>
+										</div>
+									</div>
+								</div>
+							</div>
 							<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 								<thead class="bg-gray-50 dark:bg-gray-800">
 									<tr>
@@ -222,7 +248,7 @@
 														<button
 															type="button"
 															onclick={() => openEditUserRoleModal(user)}
-															class="rounded bg-blue-500 px-3 py-1 text-sm font-bold text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+															class="rounded border border-gray-300 px-3 py-1 text-sm font-normal text-gray-500 hover:border-violet-800 hover:bg-violet-500 hover:font-bold hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
 														>
 															<i class="ri-settings-3-line pr-1 text-base"></i>
 															권한
@@ -231,9 +257,9 @@
 															<button
 																type="button"
 																onclick={() => userActions.permitUser(user.id)}
-																class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+																class="rounded border border-gray-300 px-3 py-1 text-sm font-normal text-gray-500 hover:border-green-600 hover:bg-green-500 hover:font-bold hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
 															>
-																<i class="ri-check-line"></i>
+																<i class="ri-check-line pr-1 text-base"></i>
 																승인
 															</button>
 														{/if}

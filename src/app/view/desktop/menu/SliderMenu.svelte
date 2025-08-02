@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import {
 		getFilteredMenus,
 		groupMenusBySection,
@@ -31,10 +32,10 @@
 
 <aside
 	id="logo-sidebar"
-	class="fixed left-0 top-0 z-20 h-screen w-64 -translate-x-full border-r border-gray-200 bg-white pt-20 transition-transform dark:border-gray-700 dark:bg-gray-800 sm:translate-x-0"
+	class="fixed left-0 top-0 z-20 h-screen w-64 -translate-x-full pt-20 transition-transform sm:translate-x-0"
 	aria-label="Sidebar"
 >
-	<div class="h-full overflow-y-auto bg-white px-3 pb-4 dark:bg-gray-800">
+	<div class="h-full overflow-y-auto px-3 pl-4 pb-4">
 		{#if Object.keys(groupedMenus).length > 0}
 			<ul class="space-y-2 font-medium">
 				{#each Object.entries(groupedMenus) as [section, menus]}
@@ -44,18 +45,25 @@
 					{/if}
 
 					{#each menus as menu}
+						{@const isActive = $page.url.pathname === menu.path}
 						<li>
 							<a
 								href={menu.path}
-								class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
+								class="group flex items-center rounded-lg p-2 transition-all duration-200 {isActive 
+									? 'text-violet-700' 
+									: 'text-gray-900 hover:bg-gray-100'}"
 							>
 								<div
-									class="h-5 w-5 text-center text-gray-500 transition duration-75 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+									class="h-5 w-5 text-center transition duration-75 {isActive 
+										? 'text-violet-600' 
+										: 'text-gray-500 group-hover:text-gray-900'}"
 								>
 									<i class="{menu.icon} text-xl leading-5"></i>
 								</div>
 								<span
-									class="ms-3 text-sm font-medium text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white"
+									class="ms-3 text-sm font-medium transition duration-75 {isActive 
+										? 'text-violet-700 font-semibold' 
+										: 'text-gray-500 group-hover:text-gray-900'}"
 									>{menu.label}
 								</span>
 							</a>

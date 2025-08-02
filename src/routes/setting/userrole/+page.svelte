@@ -3,6 +3,7 @@
 	import { WindowService } from '../../../app/service/WindowService';
 	import { userStore, userActions } from '../../../app/service/user/UserStore';
 	import Toast from '../../../app/view/toast/Toast.svelte';
+	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 
 	// 페이지 로드 시 데이터 가져오기
 	onMount(() => {
@@ -42,32 +43,27 @@
 </script>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
-	<article class="w-full pl-3 pr-5 pt-3">
-		<nav
-			class="role-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
-		>
-			<div class="role-list-title flex w-full flex-row items-center justify-between">
-				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">역할 관리</h3>
-				</div>
-				<div class="flex space-x-2">
-					<button
-						type="button"
-						onclick={reloadData}
-						class="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300"
-					>
-						재로드
-					</button>
-					<button
-						type="button"
-						onclick={openAddRoleModal}
-						class="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300"
-					>
-						새 역할 추가
-					</button>
-				</div>
+	<article class="w-full">
+		<PageHeaderBar title="사용자 역활" description="사용자 역활 관리 페이지입니다.">
+			<div class="flex space-x-2">
+				<button
+					type="button"
+					onclick={reloadData}
+					class="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300"
+				>
+					<i class="ri-refresh-line pr-1 text-base"></i>
+					재로드
+				</button>
+				<button
+					type="button"
+					onclick={openAddRoleModal}
+					class="rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300"
+				>
+					<i class="ri-info-card-line pr-1 text-base"></i>
+					새 역할 추가
+				</button>
 			</div>
-		</nav>
+		</PageHeaderBar>
 
 		<!-- 메시지 표시 -->
 		{#if $userStore.error}
@@ -93,7 +89,7 @@
 
 		<!-- 역할 목록 테이블 -->
 		<article class="role-list">
-			<div class="mt-6 flex flex-col">
+			<div class="flex flex-col">
 				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
 						<div
@@ -143,7 +139,7 @@
 										</tr>
 									{:else}
 										{#each $userStore.roles as role}
-											<tr class="hover:bg-gray-50">
+											<tr class="font-normal hover:bg-gray-50">
 												<td class="px-4 py-3.5 text-sm text-gray-900">
 													{role.name}
 												</td>
@@ -158,7 +154,7 @@
 														<button
 															type="button"
 															onclick={() => openEditRoleModal(role)}
-															class="rounded bg-blue-500 px-3 py-1 text-sm font-bold text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+															class="rounded border border-gray-300 px-3 py-1 text-sm font-normal text-gray-500 hover:border-violet-800 hover:bg-violet-500 hover:font-bold hover:text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
 														>
 															<i class="ri-edit-line pr-1 text-base"></i>
 															편집

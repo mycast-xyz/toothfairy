@@ -28,6 +28,12 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		icon: 'ri-home-6-line',
 		roles: ['all_admin', 'all_lab', 'all_center', 'all_cam', 'user']
 	},
+	{
+		path: 'main',
+		label: '캘린더',
+		icon: 'ri-calendar-line',
+		roles: ['all_admin', 'all_lab', 'all_center', 'all_cam', 'user']
+	},
 
 	// 치과기공소 섹션
 	{
@@ -41,13 +47,6 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		path: '/lab/requestlist',
 		label: '의뢰 목록',
 		icon: 'ri-folder-user-line',
-		roles: ['all_lab', 'all_admin'],
-		section: '치과기공소'
-	},
-	{
-		path: '/lab/calculate',
-		label: '정산 목록',
-		icon: 'ri-currency-line',
 		roles: ['all_lab', 'all_admin'],
 		section: '치과기공소'
 	},
@@ -76,19 +75,51 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		roles: ['all_center', 'all_admin'],
 		section: '기공센터'
 	},
+
+	// 관리 - 관리자만 접근 가능
 	{
-		path: '/center/invoice',
+		path: '/setting/user',
+		label: '사용자 관리',
+		icon: 'ri-id-card-line',
+		roles: ['all_admin'],
+		section: '기공소 관리'
+	},
+	{
+		path: '/setting/userrole',
+		label: '사용자 권한 관리',
+		icon: 'ri-user-settings-line',
+		roles: ['all_admin'],
+		section: '기공소 관리'
+	},
+	{
+		path: '/setting/invoice',
 		label: '청구서 관리',
 		icon: 'ri-file-list-3-line',
 		roles: ['all_admin'],
-		section: '기공센터'
+		section: '기공소 관리'
 	},
 	{
-		path: '/center/company',
+		path: '/setting/company',
 		label: '거래처 관리',
 		icon: 'ri-building-line',
 		roles: ['all_admin'],
-		section: '기공센터'
+		section: '기공소 관리'
+	},
+
+	// 관리 - 관리자만 접근 가능
+	{
+		path: '/setting/user',
+		label: '매출 통계',
+		icon: 'ri-id-card-line',
+		roles: ['all_admin'],
+		section: '통계'
+	},
+	{
+		path: '/setting/userrole',
+		label: '재료 통계',
+		icon: 'ri-user-settings-line',
+		roles: ['all_admin'],
+		section: '통계'
 	},
 
 	// 설정 - 관리자만 접근 가능
@@ -96,20 +127,6 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		path: '/setting/site',
 		label: '사이트 관리',
 		icon: 'ri-settings-2-line',
-		roles: ['all_admin'],
-		section: '설정'
-	},
-	{
-		path: '/setting/user',
-		label: '사용자 관리',
-		icon: 'ri-id-card-line',
-		roles: ['all_admin'],
-		section: '설정'
-	},
-	{
-		path: '/setting/userrole',
-		label: '사용자 권한 관리',
-		icon: 'ri-user-settings-line',
 		roles: ['all_admin'],
 		section: '설정'
 	}

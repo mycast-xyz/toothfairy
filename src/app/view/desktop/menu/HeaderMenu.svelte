@@ -31,6 +31,31 @@
 				</a>
 			</div>
 			<div class="flex items-center">
+				<!-- 알림 아이콘들 -->
+				<div class="flex items-center space-x-4 mr-4">
+					<!-- 이메일 알림 -->
+					<button
+						type="button"
+						class="relative p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+					>
+						<i class="ri-mail-line text-xl"></i>
+						<span class="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+							2
+						</span>
+					</button>
+					
+					<!-- 벨 알림 -->
+					<button
+						type="button"
+						class="relative p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg"
+					>
+						<i class="ri-notification-3-line text-xl"></i>
+						<span class="absolute -top-1 -right-1 bg-purple-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+							2
+						</span>
+					</button>
+				</div>
+				
 				<div class="ms-3 flex items-center">
 					<div>
 						<button

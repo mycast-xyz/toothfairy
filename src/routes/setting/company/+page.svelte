@@ -2,6 +2,7 @@
 	// 캘린더 처리용 DatePicker
 	import { WindowService } from '../../../app/service/WindowService';
 	import { CenterCompany } from '../../../app/model/company/CenterCompany';
+	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 
 	// 새 태스크 추가
 	function addNewCompany() {
@@ -33,7 +34,7 @@
 	// 거래처 데이터를 CenterCompanyInit에 설정하는 함수
 	function setCompanyData(companyData: any) {
 		if (typeof companyData.item === 'string') {
-			companyData.item = companyData.item.split(',').map((item) => item.trim());
+			companyData.item = companyData.item.split(',').map((item: any) => item.trim());
 		}
 		CenterCompany.setCompany({
 			name: companyData.name || '',
@@ -75,32 +76,73 @@
 	}
 </script>
 
-<main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
-	<article class="w-full pl-3 pr-5 pt-3">
-		<nav
-			class="request-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
-		>
-			<div class="re-list-title flex w-full flex-row">
-				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">거래처 목록</h3>
-				</div>
+<main class="ml-64 mt-8 flex-1 bg-gray-100 p-8">
+	<article class="w-full">
+		<PageHeaderBar title="거래처 관리" description="기공소, 센터 통합 거래처 관리 페이지입니다.">
+			<div class="flex flex-wrap items-center gap-2">
+				<!-- 거래처 추가 -->
 				<button
 					type="button"
 					onclick={addNewCompany}
 					class="mb-2 ml-auto rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
 				>
+					<i class="ri-apps-2-add-line"></i>
 					거래처 추가
 				</button>
 			</div>
-			<div class="float-right ml-auto inline-block w-auto items-center"></div>
-		</nav>
+		</PageHeaderBar>
 		<article class="print-list">
-			<div class="mt-6 flex flex-col">
+			<div class="flex flex-col">
 				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
 						<div
 							class=" overflow-auto border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg"
 						>
+							<!-- 상단 탭 및 필터 바 UI (이미지 참고) -->
+							<div class="user-tab-bar w-full border-b border-gray-200 bg-white">
+								<div class="flex flex-wrap items-center justify-between">
+									<!-- 탭 메뉴 -->
+									<div class="flex w-full px-2 pt-2">
+										<button
+											class="tab-btn min-w-24 border-b-2 border-violet-500 px-4 py-3 pt-2 text-sm font-semibold text-violet-600 focus:outline-none"
+											disabled
+										>
+											전체
+										</button>
+										<button
+											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+											disabled
+										>
+											기공소
+										</button>
+										<button
+											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+											disabled
+										>
+											센터
+										</button>
+									</div>
+									<!-- 오른쪽 필터/검색 -->
+									<div
+										class="flex w-full items-center gap-2 border-t border-gray-200 bg-gray-100 px-2 py-4"
+									>
+										<!-- 검색 입력
+										<div class="relative">
+											<div class="relative">
+												<i
+													class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+												></i>
+												<input
+													type="text"
+													class="h-12 w-80 rounded border border-gray-300 py-4 pl-8 pr-2 text-sm text-gray-600 placeholder-gray-400 focus:border-violet-500 focus:outline-none"
+													placeholder="이름을 적어주세요 (예: 홍길동)"
+													bind:value={$userStore.searchTerm}
+												/>
+											</div>
+										</div> -->
+									</div>
+								</div>
+							</div>
 							<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 								<thead class="bg-gray-50 dark:bg-gray-800">
 									<tr>

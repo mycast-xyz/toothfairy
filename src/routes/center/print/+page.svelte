@@ -3,6 +3,8 @@
 	import type { PageData } from './$types';
 	import { writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
+	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
+	import MonthDatePicker from '../../../app/view/components/datepicker/MonthDatePicker.svelte';
 
 	const { data } = $props<{ data: any }>();
 	// 날짜 초기화 함수
@@ -139,103 +141,121 @@
 
 		window.location.href = `/center/print?${params.toString()}`;
 	}
+
+	// MonthDatePicker 이벤트 핸들러
+	function handleYearChange(event: CustomEvent) {
+		selectedYear.set(event.detail.year);
+	}
+
+	function handleMonthSelect(event: CustomEvent) {
+		selectedYear.set(event.detail.year);
+		selectedMonth.set(event.detail.month);
+	}
 </script>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
-	<article class="w-full pl-3 pr-5 pt-3">
-		<nav
-			class="request-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
-		>
-			<div class="re-list-title flex w-full flex-row">
-				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">출력물 목록</h3>
-				</div>
-			</div>
-			<div class="nav-search-box mt-4 border-t border-gray-100 pt-4">
-				<div class="shadow-xs inline-flex rounded-md" role="group">
-					<button
-						type="button"
-						onclick={() => (selectedType = 'all')}
-						class:active={selectedType === 'all'}
-						class="rounded-s-lg border border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
-					>
-						전체
-					</button>
-					<button
-						type="button"
-						onclick={() => (selectedType = 'cap')}
-						class:active={selectedType === 'cap'}
-						class="border-b border-r border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
-					>
-						캡
-					</button>
-					<button
-						type="button"
-						onclick={() => (selectedType = 'partial')}
-						class:active={selectedType === 'partial'}
-						class="border-b border-r border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
-					>
-						파샬
-					</button>
-					<button
-						type="button"
-						onclick={() => (selectedType = 'custom')}
-						class:active={selectedType === 'custom'}
-						class="border-b border-t border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
-					>
-						커스텀
-					</button>
-					<button
-						type="button"
-						onclick={() => (selectedType = 'allonfour')}
-						class:active={selectedType === 'allonfour'}
-						class="rounded-e-lg border border-gray-900 bg-transparent px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white focus:z-10 focus:bg-gray-900 focus:text-white focus:ring-2 focus:ring-gray-500 dark:border-white dark:text-white dark:hover:bg-gray-700 dark:hover:text-white dark:focus:bg-gray-700"
-					>
-						올온포
-					</button>
-				</div>
-				<div class="relative ml-2 inline-block">
-					<div class="relative inline-flex space-x-2">
-						<input
-							type="number"
-							class="h-10 w-24 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
-							placeholder="{$selectedYear}년"
-							bind:value={$selectedYear}
-						/>
-						<input
-							type="number"
-							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
-							placeholder="{$selectedMonth}월"
-							bind:value={$selectedMonth}
-						/>
-					</div>
-					<div class="relative inline-flex space-x-2">
-						<input
-							type="text"
-							class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-violet-500 focus:outline-none"
-							placeholder="회사명"
-							bind:value={$selectedCorpName}
-						/>
-					</div>
-				</div>
-				<div class="float-right ml-auto inline-block w-auto items-center">
-					<button
-						type="button"
-						onclick={handleSearchClick}
-						class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
-					>
-						검색
-					</button>
-				</div>
-			</div>
-		</nav>
+	<article class="w-full">
+		<PageHeaderBar title="센터 출력물 리스트" description="기공 센터 출력물 관리 페이지 입니다."
+		></PageHeaderBar>
+
 		<article class="print-list">
-			<div class="mt-6 flex flex-col">
+			<div class="flex flex-col">
 				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-						<div
-							class=" overflow-auto border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg"
-						>
+						<div class="border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg">
+							<!-- 상단 탭 및 필터 바 UI (이미지 참고) -->
+							<div class="user-tab-bar w-full rounded-t-lg border-b border-gray-200 bg-white">
+								<div class="flex flex-wrap items-center justify-between">
+									<!-- 탭 메뉴 -->
+									<div class="flex w-full px-2 pt-2">
+										<button
+											type="button"
+											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
+												{selectedType === 'all' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}"
+											onclick={() => (selectedType = 'all')}
+										>
+											전체
+										</button>
+										<button
+											type="button"
+											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
+												{selectedType === 'cap' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}"
+											onclick={() => (selectedType = 'cap')}
+										>
+											캡
+										</button>
+										<button
+											type="button"
+											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
+												{selectedType === 'partial'
+												? 'border-violet-500 text-violet-600'
+												: 'border-transparent text-gray-400'}"
+											onclick={() => (selectedType = 'partial')}
+										>
+											파샬
+										</button>
+										<button
+											type="button"
+											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
+												{selectedType === 'custom'
+												? 'border-violet-500 text-violet-600'
+												: 'border-transparent text-gray-400'}"
+											onclick={() => (selectedType = 'custom')}
+										>
+											커스텀
+										</button>
+										<button
+											type="button"
+											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
+												{selectedType === 'allonfour'
+												? 'border-violet-500 text-violet-600'
+												: 'border-transparent text-gray-400'}"
+											onclick={() => (selectedType = 'allonfour')}
+										>
+											올온포
+										</button>
+									</div>
+									<!-- 오른쪽 필터/검색 -->
+									<div
+										class="flex w-full items-center gap-2 border-t border-gray-200 bg-gray-100 px-2 py-4"
+									>
+										<!-- 검색 입력 -->
+										<div class="relative">
+											<div class="relative">
+												<i
+													class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+												></i>
+												<input
+													type="text"
+													class="h-12 w-80 rounded border border-gray-300 py-4 pl-8 pr-2 text-sm text-gray-600 placeholder-gray-400 focus:border-violet-500 focus:outline-none"
+													placeholder="회사 이름을 적어주세요."
+													bind:value={$selectedCorpName}
+												/>
+											</div>
+										</div>
+										<div class="relative inline-flex space-x-2">
+											<!-- MonthDatePicker 컴포넌트 사용 -->
+											<div class="inline-block">
+												<MonthDatePicker
+													bind:selectedYear={$selectedYear}
+													bind:selectedMonth={$selectedMonth}
+													on:yearChange={handleYearChange}
+													on:select={handleMonthSelect}
+												/>
+											</div>
+										</div>
+										<div class="float-right ml-auto inline-block w-auto items-center">
+											<button
+												type="button"
+												onclick={handleSearchClick}
+												class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
+											>
+												검색
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
 							<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
 								<thead class="bg-gray-50 dark:bg-gray-800">
 									<tr>

@@ -1,7 +1,7 @@
 <script>
 	// @ts-nocheck
 	import { tick } from 'svelte';
-	import { clickOutside } from './actions';
+	import { clickOutside } from '../actions';
 
 	/**
 	 * Represents the start date for a date picker.

@@ -2,7 +2,8 @@
 	import { onMount, onDestroy } from 'svelte';
 	import ProgressBar from '../components/progressBar/ProgressBar.svelte';
 	import DropdownFilter from '../components/DropdownFilter.svelte';
-	import CustomDatePicker from '../components/CustomDatePicker.svelte';
+	import CustomDatePicker from '../components/datepicker/CustomDatePicker.svelte';
+	import PageHeaderBar from '../components/PageHeaderBar.svelte';
 	import { camPrintViewService } from '../../service/CamPrintView';
 	import { toastStore } from '../../service/ToastService';
 	import {
@@ -131,7 +132,44 @@
 </svelte:head>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
-	<article class="progress-bar mb-4 flex w-full flex-row">
+	<PageHeaderBar title="출력물 목록" description="출력물 목록 페이지입니다.">
+		<div class="flex space-x-2">
+			<!-- CAM 실시간 연결 상태 표시 (아이콘 형태로 개선) -->
+			<div class="mb-1 ml-auto flex items-center gap-2">
+				{#if isConnected}
+					<span class="text-bas3 pt-2 text-green-700">실시간 연결됨</span>
+				{:else}
+					<span class="text-bas3 pt-2 text-red-600">연결 중...</span>
+				{/if}
+			</div>
+			<button
+				on:click={refreshFromDB}
+				class="rounded bg-gray-500 px-3 py-3 text-xs text-white hover:bg-gray-600"
+			>
+				<i class="ri-refresh-line pr-1 text-base"></i>
+				재로드
+			</button>
+			{#if unifiedMonitorActive}
+				<button
+					on:click={stopUnifiedFolderMonitoring}
+					class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
+				>
+					<i class="ri-stop-circle-line pr-1 text-base"></i>
+					모니터링 중지
+				</button>
+			{:else}
+				<button
+					on:click={startUnifiedFolderMonitoring}
+					class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
+				>
+					<i class="ri-play-circle-line pr-1 text-base"></i>
+					모니터링 시작
+				</button>
+			{/if}
+		</div>
+	</PageHeaderBar>
+
+	<article class="progress-bar mb-4 flex w-full flex-row px-2">
 		{#each progressBarData as data (data.title)}
 			<ProgressBar
 				title={data.title}
@@ -151,145 +189,116 @@
 			</div>
 		{/if}
 
-		<nav
-			class="request-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
+		<!--
+		따로 써야 될 경우를 대비해서 남겨둠
+    <button
+			on:click={downloadSelectedFiles}
+			class="rounded bg-green-500 px-3 py-3 text-xs text-white hover:bg-green-600"
+			disabled={selectedItems.length === 0}
 		>
-			<div class="re-list-title flex w-full flex-row">
-				<div class="box-title inline-block flex flex-row items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-500">출력물 목록</h3>
-
-					<!-- 선택된 날짜 범위 표시 -->
-					{#if startDate || endDate}
-						<div class="ml-2 pt-3 text-base text-gray-500">
-							{startDate ? new Date(startDate).toLocaleDateString('ko-KR') : ''} ~ {endDate
-								? new Date(endDate).toLocaleDateString('ko-KR')
-								: ''}
-						</div>
-					{/if}
-				</div>
-				<div class="ml-auto flex flex-col">
-					<!-- CAM 실시간 연결 상태 표시 -->
-					<div class="mb-1 ml-auto flex items-center gap-2">
-						<div
-							class="flex h-3 w-3 rounded-full"
-							style="background-color: {isConnected ? '#22c55e' : '#ef4444'}"
-						></div>
-						<span class="text-bas3 pt-2" style="color: {isConnected ? '#16a34a' : '#dc2626'}">
-							{isConnected ? 'CAM 실시간 연결됨' : 'CAM 연결 중...'}
-						</span>
-					</div>
-				</div>
-			</div>
-			<!-- 폴더 모니터링 컨트롤 -->
-			<div class="mt-4 border-t border-gray-100 pt-4">
-				<div class="flex items-center justify-between">
-					<!-- 폴더 모니터링 컨트롤-->
-					<div class="flex items-center space-x-4">
-						<span class="text-sm font-medium text-gray-700">폴더 모니터링:</span>
-						{#if unifiedMonitorActive}
-							<button
-								on:click={stopUnifiedFolderMonitoring}
-								class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
-							>
-								중지
-							</button>
-							<div class="h-2 w-2 rounded-full bg-green-500"></div>
-						{:else}
-							<button
-								on:click={startUnifiedFolderMonitoring}
-								class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
-							>
-								시작
-							</button>
-							<div class="h-2 w-2 rounded-full bg-gray-400"></div>
-						{/if}
-					</div>
-
-					<div class="flex items-center space-x-2">
-						<button
-							on:click={refreshFromDB}
-							class="rounded bg-blue-500 px-3 py-3 text-xs text-white hover:bg-blue-600"
-						>
-							DB 새로고침
-						</button>
-						<button
-							on:click={downloadSelectedFiles}
-							class="rounded bg-green-500 px-3 py-3 text-xs text-white hover:bg-green-600"
-							disabled={selectedItems.length === 0}
-						>
-							선택 다운로드
-						</button>
-					</div>
-				</div>
-			</div>
-		</nav>
+			선택 다운로드
+		</button>
+    -->
 
 		<!-- 실시간 출력물 목록 -->
-		<article class="print-list mt-4">
+		<article class="print-list">
 			<div class=" rounded-lg border border-gray-200 bg-white shadow">
-				<div class="flex flex-row">
-					<!-- 날짜 선택 및 검색 입력창 -->
-					<div class="flex w-full items-center space-x-2 border-b border-gray-200 bg-gray-50 p-4">
-						<!-- 날짜 범위 선택기 -->
-						<div class="flex items-center space-x-1">
-							<div class="relative">
-								<CustomDatePicker
-									isRange={true}
-									onDateChange={({ startDate, endDate }) => {
-										console.log('CustomDatePicker change event:', { startDate, endDate });
-
-										if (startDate) {
-											const newStartDate = startDate.toISOString().split('T')[0];
-											console.log('Setting start date:', newStartDate);
-											camPrintViewService.startDate.set(newStartDate);
-										}
-
-										if (endDate) {
-											const newEndDate = endDate.toISOString().split('T')[0];
-											console.log('Setting end date:', newEndDate);
-											camPrintViewService.endDate.set(newEndDate);
-										}
-
-										// 날짜 변경 후 자동으로 필터링 실행
-										if (startDate || endDate) {
-											setTimeout(() => filterPrintList(), 100);
-										}
-									}}
-								/>
-							</div>
-						</div>
-						<!-- 파일명 검색 -->
-						<input
-							type="text"
-							placeholder="파일명 검색"
-							value={searchQuery}
-							on:input={(e) =>
-								camPrintViewService.searchQuery.set((e.target as HTMLInputElement).value)}
-							class="w-48 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-							on:keydown={(e) => {
-								if (e.key === 'Enter') filterPrintList();
-							}}
-						/>
-
-						<!-- 검색 버튼 -->
+				<div class="flex flex-wrap items-center justify-between">
+					<!-- 탭 메뉴 -->
+					<div class="flex w-full px-2 pt-2">
 						<button
-							class="rounded bg-violet-500 px-4 py-2 text-sm text-white hover:bg-violet-600"
-							on:click={filterPrintList}
+							class="tab-btn min-w-24 border-b-2 border-violet-500 px-4 py-3 pt-2 text-sm font-semibold text-violet-600 focus:outline-none"
+							disabled
 						>
-							검색
+							전체
+						</button>
+						<button
+							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+							disabled
+						>
+							수신됨
+						</button>
+						<button
+							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+							disabled
+						>
+							처리중
 						</button>
 
-						<!-- 초기화 버튼 -->
-						{#if searchQuery || startDate || endDate}
+						<button
+							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
+							disabled
+						>
+							완료
+						</button>
+					</div>
+					<!-- 오른쪽 필터/검색 -->
+					<div
+						class="flex w-full items-center gap-2 border-t border-gray-200 bg-gray-100 px-2 py-4"
+					>
+						<div class="flex flex-row items-center space-x-2">
+							<!-- 날짜 범위 선택기 -->
+							<div class="flex items-center space-x-1">
+								<div class="relative">
+									<CustomDatePicker
+										isRange={true}
+										onDateChange={({ startDate, endDate }) => {
+											console.log('CustomDatePicker change event:', { startDate, endDate });
+
+											if (startDate) {
+												const newStartDate = startDate.toISOString().split('T')[0];
+												console.log('Setting start date:', newStartDate);
+												camPrintViewService.startDate.set(newStartDate);
+											}
+
+											if (endDate) {
+												const newEndDate = endDate.toISOString().split('T')[0];
+												console.log('Setting end date:', newEndDate);
+												camPrintViewService.endDate.set(newEndDate);
+											}
+
+											// 날짜 변경 후 자동으로 필터링 실행
+											if (startDate || endDate) {
+												setTimeout(() => filterPrintList(), 100);
+											}
+										}}
+									/>
+								</div>
+							</div>
+							<!-- 파일명 검색 -->
+							<input
+								type="text"
+								placeholder="파일명 검색"
+								value={searchQuery}
+								on:input={(e) =>
+									camPrintViewService.searchQuery.set((e.target as HTMLInputElement).value)}
+								class="w-48 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+								on:keydown={(e) => {
+									if (e.key === 'Enter') filterPrintList();
+								}}
+							/>
+
+							<!-- 검색 버튼 -->
 							<button
-								class="rounded bg-gray-300 px-2 py-2 text-xs text-gray-700 hover:bg-gray-400"
-								on:click={clearSearch}
+								class="rounded bg-violet-500 px-4 py-2 text-sm text-white hover:bg-violet-600"
+								on:click={filterPrintList}
 							>
-								초기화
+								검색
 							</button>
-						{/if}
+
+							<!-- 초기화 버튼 -->
+							{#if searchQuery || startDate || endDate}
+								<button
+									class="rounded bg-gray-300 px-2 py-2 text-xs text-gray-700 hover:bg-gray-400"
+									on:click={clearSearch}
+								>
+									초기화
+								</button>
+							{/if}
+						</div>
 					</div>
 				</div>
+
 				<table class="min-w-full divide-y divide-gray-200">
 					<thead class="bg-gray-50">
 						<tr>
