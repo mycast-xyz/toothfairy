@@ -22,9 +22,26 @@ export const load: PageLoad = async ({ url }) => {
 	console.log('조회 날짜:', date);
 
 	try {
+		// ConfigService 설정이 로드될 때까지 기다리기
+		const configLoaded = await configService.waitForConfig(5000);
+		if (!configLoaded) {
+			console.warn('설정 로드 시간 초과, 기본값 사용');
+		}
+
 		// ConfigService를 사용하여 API 엔드포인트 가져오기
+		console.log('ConfigService 설정 로드 상태:', configService.isConfigLoaded());
+		console.log('현재 환경:', configService.getEnvironment());
+		console.log('전체 설정:', configService.getConfig());
+
 		const fileCheckEndpoint = configService.getApiEndpoint('file', 'check');
-		const apiUrl = `${backendUrl}${fileCheckEndpoint}?date=${date}&type=${typeParam}&corpName=${corpNameParam}`;
+		console.log('fileCheckEndpoint', fileCheckEndpoint);
+
+		// 추가 디버깅: 직접 설정에서 확인
+		const fileEndpoints = configService.get('api.endpoints.file');
+		console.log('file endpoints 전체:', fileEndpoints);
+
+		// 서버에서 필터링하지 않고 전체 데이터를 가져오기 위해 type 파라미터 제거
+		const apiUrl = `${backendUrl}${fileCheckEndpoint}?date=${date}&corpName=${corpNameParam}&type=all`;
 
 		console.log('API 호출 URL:', apiUrl);
 

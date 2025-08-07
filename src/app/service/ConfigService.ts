@@ -66,7 +66,10 @@ class ConfigService {
 	private environment: string = 'dev';
 
 	constructor() {
-		this.loadConfig();
+		// 비동기로 설정 로드 시작
+		this.loadConfig().catch((error) => {
+			console.error('설정 로드 실패:', error);
+		});
 	}
 
 	/**
@@ -79,7 +82,7 @@ class ConfigService {
 
 			// 브라우저 환경에서는 동적으로 설정 파일 로드
 			if (typeof window !== 'undefined') {
-				const configPath = `/src/app/config/application.${this.environment}.json`;
+				const configPath = `/config/application.${this.environment}.json`;
 
 				try {
 					const response = await fetch(configPath);

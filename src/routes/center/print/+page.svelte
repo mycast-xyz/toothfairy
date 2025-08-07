@@ -25,8 +25,16 @@
 	let selectedMonth = writable(month);
 	let selectedCorpName = writable('');
 
-	// svelte-ignore non_reactive_update
-	let selectedType = data.param.type ? data.param.type : 'all';
+	// selectedType을 반응형 변수로 변경
+	let selectedType = $state(data.param.type ? data.param.type : 'all');
+
+	// 반응형 필터링: selectedType이 변경될 때마다 자동으로 필터링
+	let filteredData = $derived(
+		selectedType === 'all' ? data.info : data.info.filter((item: any) => item.info === selectedType)
+	);
+
+	// 데이터가 있는지 확인하는 반응형 변수
+	let hasData = $derived(data.info && data.info.length > 0);
 
 	// 정렬 처리
 	let currentSort = writable({
@@ -136,7 +144,7 @@
 			'date',
 			$selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0')
 		);
-		params.append('type', selectedType);
+		params.append('type', 'all');
 		params.append('corpName', $selectedCorpName.toString());
 
 		window.location.href = `/center/print?${params.toString()}`;
@@ -170,47 +178,57 @@
 									<div class="flex w-full px-2 pt-2">
 										<button
 											type="button"
+											disabled={!hasData}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
-												{selectedType === 'all' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}"
-											onclick={() => (selectedType = 'all')}
+												{selectedType === 'all' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
+												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && (selectedType = 'all')}
 										>
 											전체
 										</button>
 										<button
 											type="button"
+											disabled={!hasData}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
-												{selectedType === 'cap' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}"
-											onclick={() => (selectedType = 'cap')}
+												{selectedType === 'cap' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
+												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && (selectedType = 'cap')}
 										>
 											캡
 										</button>
 										<button
 											type="button"
+											disabled={!hasData}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'partial'
 												? 'border-violet-500 text-violet-600'
-												: 'border-transparent text-gray-400'}"
-											onclick={() => (selectedType = 'partial')}
+												: 'border-transparent text-gray-400'}
+												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && (selectedType = 'partial')}
 										>
 											파샬
 										</button>
 										<button
 											type="button"
+											disabled={!hasData}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'custom'
 												? 'border-violet-500 text-violet-600'
-												: 'border-transparent text-gray-400'}"
-											onclick={() => (selectedType = 'custom')}
+												: 'border-transparent text-gray-400'}
+												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && (selectedType = 'custom')}
 										>
 											커스텀
 										</button>
 										<button
 											type="button"
+											disabled={!hasData}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'allonfour'
 												? 'border-violet-500 text-violet-600'
-												: 'border-transparent text-gray-400'}"
-											onclick={() => (selectedType = 'allonfour')}
+												: 'border-transparent text-gray-400'}
+												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && (selectedType = 'allonfour')}
 										>
 											올온포
 										</button>
@@ -343,88 +361,83 @@
 								<tbody
 									class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
 								>
-									{#each data.info as item}
-										<tr onclick={() => handleRowClick(item.id)}>
-											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-												<div>
-													<h2 class="font-medium text-gray-800 dark:text-white">
-														{item.printDate}
-													</h2>
-													<p class="text-sm font-normal text-gray-600 dark:text-gray-400">
-														{new Date(item.printDate)
-															.toLocaleDateString('ko-KR', { weekday: 'long' })
-															.slice(0, 1)}요일
+									{#if !hasData}
+										<tr>
+											<td colspan="8" class="py-12 text-center">
+												<div class="flex flex-col items-center justify-center">
+													<i class="ri-file-damage-line mb-4 text-4xl text-gray-400"></i>
+													<p class="text-lg font-medium text-gray-600 dark:text-gray-400">
+														{data.param.date} 데이터가 존재하지 않습니다.
+													</p>
+													<p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
+														다른 날짜를 선택하거나 검색 조건을 변경해보세요.
 													</p>
 												</div>
 											</td>
-											<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-												<div>
-													<h2 class="font-medium text-gray-800 dark:text-white">
-														{item.corpName}
-													</h2>
-												</div>
-											</td>
-											<td
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												<span
-													class={item.normalFileNum > 0
-														? item.normalUnitNum === 0
-															? 'text-red-500'
-															: 'text-green-500'
-														: 'text-gray-500'}>정상</span
-												>
-												<i
-													class={item.normalFileNum > 0
-														? item.normalUnitNum === 0
-															? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
-															: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
-														: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
-												></i>
-												<span
-													class={item.remakeFileNum > 0
-														? item.remakeUnitNum === 0
-															? 'text-red-500'
-															: 'text-green-500'
-														: 'text-gray-500'}>리메이크</span
-												>
-												<i
-													class={item.remakeFileNum > 0
-														? item.remakeUnitNum === 0
-															? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
-															: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
-														: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
-												></i>
-											</td>
-											<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
-												<div
-													class={`inline gap-x-2 rounded-full ${getColorAndName(item.info).color} px-3 py-1 text-sm font-normal`}
-												>
-													{getColorAndName(item.info).name}
-												</div>
-											</td>
-											<td class="whitespace-nowrap px-4 py-4 text-sm">
-												<div>
-													<h4 class="text-gray-700 dark:text-gray-200">
-														총합 : {item.normalFileNum + item.remakeFileNum}
-													</h4>
-													<p class="font-normal text-gray-500 dark:text-gray-400">
-														정상 : {item.normalFileNum}개, 리메이크 : {item.remakeFileNum}개
-													</p>
-												</div>
-											</td>
-											<td class="whitespace-nowrap px-4 py-4 text-sm">
-												{#if item.info === 'cap'}
+										</tr>
+									{:else}
+										{#each filteredData as item}
+											<tr onclick={() => handleRowClick(item.id)}>
+												<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
 													<div>
-														<h4 class="text-gray-700 dark:text-gray-200">
-															총합 : {item.normalUnitNum + item.remakeUnitNum}
-														</h4>
-														<p class="font-normal text-gray-500 dark:text-gray-400">
-															정상 : {item.normalUnitNum}개, 리메이크 : {item.remakeUnitNum}개
+														<h2 class="font-medium text-gray-800 dark:text-white">
+															{item.printDate}
+														</h2>
+														<p class="text-sm font-normal text-gray-600 dark:text-gray-400">
+															{new Date(item.printDate)
+																.toLocaleDateString('ko-KR', { weekday: 'long' })
+																.slice(0, 1)}요일
 														</p>
 													</div>
-												{:else}
+												</td>
+												<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
+													<div>
+														<h2 class="font-medium text-gray-800 dark:text-white">
+															{item.corpName}
+														</h2>
+													</div>
+												</td>
+												<td
+													scope="col"
+													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+												>
+													<span
+														class={item.normalFileNum > 0
+															? item.normalUnitNum === 0
+																? 'text-red-500'
+																: 'text-green-500'
+															: 'text-gray-500'}>정상</span
+													>
+													<i
+														class={item.normalFileNum > 0
+															? item.normalUnitNum === 0
+																? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
+																: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
+															: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
+													></i>
+													<span
+														class={item.remakeFileNum > 0
+															? item.remakeUnitNum === 0
+																? 'text-red-500'
+																: 'text-green-500'
+															: 'text-gray-500'}>리메이크</span
+													>
+													<i
+														class={item.remakeFileNum > 0
+															? item.remakeUnitNum === 0
+																? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
+																: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
+															: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
+													></i>
+												</td>
+												<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
+													<div
+														class={`inline gap-x-2 rounded-full ${getColorAndName(item.info).color} px-3 py-1 text-sm font-normal`}
+													>
+														{getColorAndName(item.info).name}
+													</div>
+												</td>
+												<td class="whitespace-nowrap px-4 py-4 text-sm">
 													<div>
 														<h4 class="text-gray-700 dark:text-gray-200">
 															총합 : {item.normalFileNum + item.remakeFileNum}
@@ -433,32 +446,54 @@
 															정상 : {item.normalFileNum}개, 리메이크 : {item.remakeFileNum}개
 														</p>
 													</div>
-												{/if}
-											</td>
-											<td class="pointer-events-none whitespace-nowrap px-4 py-4 text-sm">
-												{#if item.info === 'partial'}
-													<p
-														class=" max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
+												</td>
+												<td class="whitespace-nowrap px-4 py-4 text-sm">
+													{#if item.info === 'cap'}
+														<div>
+															<h4 class="text-gray-700 dark:text-gray-200">
+																총합 : {item.normalUnitNum + item.remakeUnitNum}
+															</h4>
+															<p class="font-normal text-gray-500 dark:text-gray-400">
+																정상 : {item.normalUnitNum}개, 리메이크 : {item.remakeUnitNum}개
+															</p>
+														</div>
+													{:else}
+														<div>
+															<h4 class="text-gray-700 dark:text-gray-200">
+																총합 : {item.normalFileNum + item.remakeFileNum}
+															</h4>
+															<p class="font-normal text-gray-500 dark:text-gray-400">
+																정상 : {item.normalFileNum}개, 리메이크 : {item.remakeFileNum}개
+															</p>
+														</div>
+													{/if}
+												</td>
+												<td class="pointer-events-none whitespace-nowrap px-4 py-4 text-sm">
+													{#if item.info === 'partial'}
+														<p
+															class=" max-w-[400px] whitespace-normal break-words font-normal text-gray-500 dark:text-gray-400"
+														>
+															{#each getFileInfo(item.directory.remakeFiles, item.corpName).types as type, i}
+																{type}{i <
+																getFileInfo(item.directory.remakeFiles, item.corpName).types
+																	.length -
+																	1
+																	? ', '
+																	: ''}
+															{/each}
+														</p>
+													{/if}
+												</td>
+												<td class="whitespace-nowrap px-4 py-4 text-sm">
+													<button
+														class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
 													>
-														{#each getFileInfo(item.directory.remakeFiles, item.corpName).types as type, i}
-															{type}{i <
-															getFileInfo(item.directory.remakeFiles, item.corpName).types.length -
-																1
-																? ', '
-																: ''}
-														{/each}
-													</p>
-												{/if}
-											</td>
-											<td class="whitespace-nowrap px-4 py-4 text-sm">
-												<button
-													class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
-												>
-													<i class="ri-more-2-line text-lg"></i>
-												</button>
-											</td>
-										</tr>
-									{/each}
+														<i class="ri-more-2-line text-lg"></i>
+													</button>
+												</td>
+											</tr>
+										{/each}
+									{/if}
 								</tbody>
 							</table>
 						</div>
