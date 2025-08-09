@@ -8,6 +8,7 @@ interface SocketIOClient {
 	connect(): void;
 	disconnect(): void;
 	on(event: string, callback: (data: any) => void): void;
+	off(event: string, callback?: (data: any) => void): void;
 	emit(event: string, data: any): void;
 	connected: boolean;
 }
@@ -41,7 +42,25 @@ class CamSocketService {
 	constructor() {
 		// 브라우저 환경에서만 초기화
 		if (typeof window !== 'undefined') {
-			this.initializeSocket();
+			// ConfigService 로드 후 소켓 초기화
+			this.delayedInitialize();
+		}
+	}
+
+	private async delayedInitialize() {
+		try {
+			// ConfigService 설정 로드 대기 (최대 5초)
+			const configLoaded = await configService.waitForConfig(5000);
+			if (configLoaded) {
+				console.log('⏳ ConfigService 로드 완료 - 소켓 초기화 시작');
+				await this.initializeSocket();
+			} else {
+				console.warn('⚠️ ConfigService 로드 실패 - 기본 설정으로 소켓 초기화');
+				await this.initializeSocket();
+			}
+		} catch (error) {
+			console.error('❌ 소켓 지연 초기화 오류:', error);
+			camSocketError.set('소켓 초기화에 실패했습니다.');
 		}
 	}
 
@@ -52,22 +71,42 @@ class CamSocketService {
 
 			// ConfigService에서 소켓 서버 주소 가져오기
 			const socketConfig = configService.getSocketConfig();
-			const socketUrl = getSocketUrl();
+			let socketUrl = getSocketUrl();
 
 			console.log('🔌 CAM 소켓 초기화 시작');
+			console.log('🔧 소켓 설정:', socketConfig);
+			console.log('🌐 소켓 URL:', socketUrl);
+
+			// 소켓 URL이 없거나 잘못된 경우 기본값 사용
+			if (!socketUrl || socketUrl === 'undefined' || !socketUrl.startsWith('ws')) {
+				socketUrl = 'ws://localhost:30090';
+				console.warn('⚠️ 소켓 URL 설정 문제 - 기본값 사용:', socketUrl);
+			}
 
 			// 설정에서 재연결 설정 가져오기
-			if (socketConfig) {
-				this.maxReconnectAttempts = socketConfig.reconnect.maxAttempts;
-				this.reconnectInterval = socketConfig.reconnect.interval;
+			if (socketConfig && socketConfig.reconnect) {
+				this.maxReconnectAttempts = socketConfig.reconnect.maxAttempts || 5;
+				this.reconnectInterval = socketConfig.reconnect.interval || 3000;
+				console.log('🔄 재연결 설정:', {
+					maxAttempts: this.maxReconnectAttempts,
+					interval: this.reconnectInterval
+				});
+			} else {
+				console.log('🔄 기본 재연결 설정 사용:', {
+					maxAttempts: this.maxReconnectAttempts,
+					interval: this.reconnectInterval
+				});
 			}
 
 			// JWT 토큰 가져오기
 			const jwtToken = await authService.getJwtToken();
-			console.log('🔐 소켓 연결 시 사용하는 JWT 토큰:', jwtToken);
+			console.log('🔐 JWT 토큰 상태:', jwtToken ? '✅ 토큰 존재' : '❌ 토큰 없음');
+			if (jwtToken) {
+				console.log('🔐 JWT 토큰 길이:', jwtToken.length);
+			}
 
 			// Socket.IO 클라이언트 생성 (JWT 토큰을 auth로 전송)
-			this.socket = io(socketUrl, {
+			const socketOptions: any = {
 				transports: ['websocket', 'polling'],
 				withCredentials: true, // 쿠키도 함께 전송
 				reconnection: true, // 재연결 활성화
@@ -75,11 +114,23 @@ class CamSocketService {
 				reconnectionDelay: this.reconnectInterval,
 				reconnectionDelayMax: 10000, // 최대 재연결 지연 10초
 				timeout: 20000,
-				forceNew: true, // 새로운 연결 강제 생성
-				auth: {
-					token: jwtToken // JWT 토큰을 auth 객체로 전송
-				}
-			});
+				forceNew: false, // 기존 연결 재사용 허용
+				autoConnect: true // 자동 연결
+			};
+
+			// JWT 토큰이 있는 경우에만 auth 추가
+			if (jwtToken) {
+				socketOptions.auth = {
+					token: jwtToken
+				};
+			}
+
+			console.log('⚙️ 소켓 옵션:', socketOptions);
+
+			this.socket = io(socketUrl, socketOptions);
+
+			// 연결 시도 로그
+			console.log('🔌 소켓 연결 시도 중...', socketUrl);
 
 			this.setupSocketEventHandlers();
 		} catch (error) {
@@ -321,6 +372,156 @@ class CamSocketService {
 			console.log('📁 [소켓] folder-changed 이벤트 수신:', data);
 			folderMonitorNotification.set(`폴더 변경이 감지되었습니다: ${data.folderType}`);
 			console.log('📁 [소켓] refreshPrintListFromDB 호출');
+			this.refreshPrintListFromDB();
+		});
+
+		// 파일 이벤트 처리 (백엔드에서 보내는 파일 생성/수정/삭제 이벤트)
+		this.socket.on('file-event', (data) => {
+			console.log('📊 [소켓] file-event 이벤트 수신:', data);
+
+			// .DS_Store 파일은 무시
+			if (data.filename && data.filename.includes('.DS_Store')) {
+				console.log('📊 .DS_Store 파일 이벤트 무시:', data.filename);
+				return;
+			}
+
+			// 파일 이벤트 타입별 처리
+			switch (data.eventType) {
+				case 'create':
+					console.log('📊 파일 생성 이벤트:', {
+						filename: data.filename,
+						folderType: data.folderType,
+						timestamp: data.timestamp
+					});
+					folderMonitorNotification.set(`새 파일이 추가되었습니다: ${data.filename}`);
+					break;
+
+				case 'change':
+				case 'modify':
+					console.log('📊 파일 수정 이벤트:', {
+						filename: data.filename,
+						folderType: data.folderType,
+						timestamp: data.timestamp
+					});
+					folderMonitorNotification.set(`파일이 수정되었습니다: ${data.filename}`);
+					break;
+
+				case 'delete':
+				case 'unlink':
+					console.log('📊 파일 삭제 이벤트:', {
+						filename: data.filename,
+						folderType: data.folderType,
+						timestamp: data.timestamp
+					});
+					folderMonitorNotification.set(`파일이 삭제되었습니다: ${data.filename}`);
+					break;
+
+				default:
+					console.log('📊 알 수 없는 파일 이벤트:', data);
+			}
+
+			// 파일 이벤트 발생 시 출력물 리스트 새로고침
+			console.log('📊 [소켓] 파일 이벤트로 인한 refreshPrintListFromDB 호출');
+			this.refreshPrintListFromDB();
+		});
+
+		// 통합 파일 이벤트 처리 (unified-file-event)
+		this.socket.on('unified-file-event', (data) => {
+			console.log('📊 [소켓] unified-file-event 이벤트 수신:', data);
+
+			// .DS_Store 파일은 무시
+			if (data.filename && data.filename.includes('.DS_Store')) {
+				console.log('📊 .DS_Store 파일 이벤트 무시:', data.filename);
+				return;
+			}
+
+			// 통합 파일 이벤트 처리
+			console.log('📊 통합 파일 이벤트:', {
+				eventType: data.eventType,
+				filename: data.filename,
+				folderType: data.folderType,
+				filePath: data.filePath,
+				timestamp: data.timestamp
+			});
+
+			// 알림 메시지 설정
+			const typeMessage =
+				data.eventType === 'create'
+					? '추가'
+					: data.eventType === 'change' || data.eventType === 'modify'
+						? '수정'
+						: data.eventType === 'delete' || data.eventType === 'unlink'
+							? '삭제'
+							: '변경';
+
+			folderMonitorNotification.set(
+				`[${data.folderType}] 파일이 ${typeMessage}되었습니다: ${data.filename}`
+			);
+
+			// 파일 이벤트 발생 시 출력물 리스트 새로고침
+			console.log('📊 [소켓] 통합 파일 이벤트로 인한 refreshPrintListFromDB 호출');
+			this.refreshPrintListFromDB();
+		});
+
+		// 폴더 변경 배치 이벤트 처리 (folder-changes-batch)
+		this.socket.on('folder-changes-batch', (data) => {
+			console.log('📊 [소켓] folder-changes-batch 이벤트 수신:', data);
+
+			if (!data.changes || !Array.isArray(data.changes)) {
+				console.warn('⚠️ 잘못된 배치 이벤트 데이터:', data);
+				return;
+			}
+
+			// .DS_Store 파일 필터링
+			const validChanges = data.changes.filter(
+				(change: any) => change.filename && !change.filename.includes('.DS_Store')
+			);
+
+			if (validChanges.length === 0) {
+				console.log('📊 모든 파일이 .DS_Store이므로 무시');
+				return;
+			}
+
+			console.log('📊 배치 파일 변경 이벤트:', {
+				folderType: data.folderType,
+				totalChanges: data.count,
+				validChanges: validChanges.length,
+				timestamp: data.timestamp
+			});
+
+			// 변경 타입별 카운트
+			const changeTypes = validChanges.reduce((acc: any, change: any) => {
+				acc[change.eventType] = (acc[change.eventType] || 0) + 1;
+				return acc;
+			}, {});
+
+			console.log('📊 변경 타입별 통계:', changeTypes);
+
+			// 대표적인 파일들 로깅 (최대 5개)
+			const sampleFiles = validChanges.slice(0, 5).map((change: any) => change.filename);
+			console.log('📊 변경된 파일 예시:', sampleFiles);
+			if (validChanges.length > 5) {
+				console.log(`📊 ... 외 ${validChanges.length - 5}개 파일`);
+			}
+
+			// 알림 메시지 설정
+			const createCount = changeTypes.create || 0;
+			const modifyCount = (changeTypes.change || 0) + (changeTypes.modify || 0);
+			const deleteCount = (changeTypes.delete || 0) + (changeTypes.unlink || 0);
+
+			let notificationMessage = `[${data.folderType}] `;
+			const messages = [];
+
+			if (createCount > 0) messages.push(`${createCount}개 파일 추가`);
+			if (modifyCount > 0) messages.push(`${modifyCount}개 파일 수정`);
+			if (deleteCount > 0) messages.push(`${deleteCount}개 파일 삭제`);
+
+			notificationMessage += messages.join(', ');
+
+			folderMonitorNotification.set(notificationMessage);
+
+			// 배치 이벤트 발생 시 출력물 리스트 새로고침
+			console.log('📊 [소켓] 배치 파일 이벤트로 인한 refreshPrintListFromDB 호출');
 			this.refreshPrintListFromDB();
 		});
 	}
@@ -607,6 +808,22 @@ class CamSocketService {
 		}
 	}
 
+	// 수동 연결 시도
+	async connect() {
+		if (this.socket && this.socket.connected) {
+			console.log('🔗 이미 소켓에 연결되어 있습니다.');
+			return;
+		}
+
+		if (!this.socket) {
+			console.log('🔌 소켓이 초기화되지 않음 - 재초기화 시도');
+			await this.initializeSocket();
+		} else {
+			console.log('🔌 기존 소켓으로 연결 시도');
+			this.socket.connect();
+		}
+	}
+
 	// 소켓 연결 해제
 	disconnect() {
 		if (this.socket) {
@@ -614,11 +831,56 @@ class CamSocketService {
 			this.socket.disconnect();
 			this.socket = null;
 		}
+		camSocketConnected.set(false);
+		this.reconnectAttempts = 0;
 	}
 
 	// 연결 상태 확인
 	isConnected(): boolean {
 		return this.socket?.connected || false;
+	}
+
+	// 모니터링 폴더 초기화 (비밀번호 인증 포함)
+	initializeMonitoringFolders(password: string): Promise<{ success: boolean; message: string }> {
+		return new Promise((resolve, reject) => {
+			if (!this.socket?.connected) {
+				console.warn('⚠️ 소켓이 연결되지 않아 모니터링 폴더를 초기화할 수 없습니다.');
+				reject(new Error('소켓이 연결되지 않았습니다.'));
+				return;
+			}
+
+			console.log('🔧 모니터링 폴더 초기화 요청 (비밀번호 인증)');
+
+			// 일회성 이벤트 리스너 등록
+			const handleSuccess = (data: any) => {
+				console.log('✅ 모니터링 폴더 초기화 성공:', data);
+				this.socket?.off('monitoring-folders-error', handleError);
+				resolve({
+					success: true,
+					message: '모니터링 폴더가 성공적으로 초기화되었습니다.'
+				});
+			};
+
+			const handleError = (data: any) => {
+				console.error('❌ 모니터링 폴더 초기화 실패:', data);
+				this.socket?.off('monitoring-folders-initialized', handleSuccess);
+				reject(new Error(data.message || '모니터링 폴더 초기화에 실패했습니다.'));
+			};
+
+			// 이벤트 리스너 등록
+			this.socket.on('monitoring-folders-initialized', handleSuccess);
+			this.socket.on('monitoring-folders-error', handleError);
+
+			// 서버로 초기화 요청 전송
+			this.socket.emit('initialize-monitoring-folders', { password });
+
+			// 타임아웃 설정 (30초)
+			setTimeout(() => {
+				this.socket?.off('monitoring-folders-initialized', handleSuccess);
+				this.socket?.off('monitoring-folders-error', handleError);
+				reject(new Error('요청 시간이 초과되었습니다.'));
+			}, 30000);
+		});
 	}
 
 	// 소켓 ID 가져오기

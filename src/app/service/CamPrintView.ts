@@ -148,7 +148,11 @@ export class CamPrintViewService {
 	}
 
 	// 소켓 연결 및 구독 설정
-	connect() {
+	async connect() {
+		// 소켓 서비스 수동 연결 시도
+		console.log('🔗 CAM 소켓 서비스 연결 시도');
+		await camSocketService.connect();
+
 		// 통합 폴더 모니터링 자동 시작
 		camSocketService.startUnifiedFolderMonitor();
 
@@ -158,6 +162,8 @@ export class CamPrintViewService {
 			if (connected) {
 				// 소켓 연결 시 자동으로 데이터가 전송되므로 별도 요청 불필요
 				console.log('🔗 CAM 소켓 연결됨 - 자동 데이터 수신 대기');
+			} else {
+				console.log('❌ CAM 소켓 연결 끊어짐');
 			}
 		});
 
@@ -576,6 +582,29 @@ export class CamPrintViewService {
 			}
 		} catch (error) {
 			console.error('❌ 필터링된 출력물 리스트 새로고침 실패:', error);
+			throw error;
+		}
+	}
+
+	// 모니터링 폴더 초기화
+	async initializeMonitoringFolders(
+		password: string
+	): Promise<{ success: boolean; message: string }> {
+		try {
+			console.log('🔧 [CamPrintViewService] 모니터링 폴더 초기화 요청');
+
+			// 소켓 서비스를 통해 초기화 실행
+			const result = await camSocketService.initializeMonitoringFolders(password);
+
+			// 초기화 완료 후 데이터 새로고침
+			if (result.success) {
+				console.log('✅ 모니터링 폴더 초기화 성공 - 데이터 새로고침');
+				await this.refreshFromDB();
+			}
+
+			return result;
+		} catch (error) {
+			console.error('❌ [CamPrintViewService] 모니터링 폴더 초기화 실패:', error);
 			throw error;
 		}
 	}

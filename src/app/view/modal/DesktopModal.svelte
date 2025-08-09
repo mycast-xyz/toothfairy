@@ -7,6 +7,7 @@
 	import EditUserRole from '../userrole/EditUserRole.svelte';
 	import DeleteConfirmModal from '../userrole/DeleteConfirmModal.svelte';
 	import EditUserRoleModal from '../userrole/EditUserRoleModal.svelte';
+	import BackupResetModal from '../cam/BackupResetModal.svelte';
 	// props에서 데이터 가져오기
 	//const { data } = $props<{ data: any }>();
 
@@ -44,6 +45,11 @@
 			case 'edit-user-role':
 				ModalComponent = EditUserRoleModal;
 				ModalTitle = '사용자 권한 수정';
+				ModalSize = 'default';
+				break;
+			case 'backup-reset':
+				ModalComponent = BackupResetModal;
+				ModalTitle = '백업 초기화';
 				ModalSize = 'default';
 				break;
 			default:

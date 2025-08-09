@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import MonthDatePicker from '../../../app/view/components/datepicker/MonthDatePicker.svelte';
+	import { configService } from '../../../app/service/ConfigService';
 
 	const { data } = $props<{ data: any }>();
 	// 날짜 초기화 함수
@@ -28,13 +29,53 @@
 	// selectedType을 반응형 변수로 변경
 	let selectedType = $state(data.param.type ? data.param.type : 'all');
 
+	// 클라이언트 사이드에서 관리할 데이터와 로딩 상태
+	let apiData = $state<any[]>([]);
+	let isLoading = $state(true);
+
 	// 반응형 필터링: selectedType이 변경될 때마다 자동으로 필터링
 	let filteredData = $derived(
-		selectedType === 'all' ? data.info : data.info.filter((item: any) => item.info === selectedType)
+		selectedType === 'all' ? apiData : apiData.filter((item: any) => item.info === selectedType)
 	);
 
 	// 데이터가 있는지 확인하는 반응형 변수
-	let hasData = $derived(data.info && data.info.length > 0);
+	let hasData = $derived(apiData && apiData.length > 0);
+
+	// API 데이터 로드 함수
+	async function loadData() {
+		try {
+			isLoading = true;
+
+			// ConfigService에서 API URL 구성하기
+			const backendUrl = data.url;
+			const fileCheckEndpoint = configService.getApiEndpoint('file', 'check');
+			const apiUrl = `${backendUrl}${fileCheckEndpoint}?date=${data.param.date}&corpName=${data.param.corpName || ''}&type=all`;
+
+			console.log('API 호출 URL:', apiUrl);
+			const response = await fetch(apiUrl);
+
+			if (response.ok) {
+				const result = await response.json();
+				if (result.resultCode === 200 && result.item) {
+					apiData = result.item;
+				} else {
+					apiData = [];
+				}
+			} else {
+				apiData = [];
+			}
+		} catch (error) {
+			console.error('데이터 로드 오류:', error);
+			apiData = [];
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	// 페이지 로드 시 데이터 로드
+	$effect(() => {
+		loadData();
+	});
 
 	// 정렬 처리
 	let currentSort = writable({
@@ -138,16 +179,24 @@
 		goto('/center/show/' + item);
 	}
 
-	function handleSearchClick() {
-		const params = new URLSearchParams();
-		params.append(
-			'date',
-			$selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0')
-		);
-		params.append('type', 'all');
-		params.append('corpName', $selectedCorpName.toString());
+	async function handleSearchClick() {
+		// URL 파라미터 업데이트
+		const newDate = $selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0');
+		const newCorpName = $selectedCorpName.toString();
 
-		window.location.href = `/center/print?${params.toString()}`;
+		// 파라미터 업데이트
+		data.param.date = newDate;
+		data.param.corpName = newCorpName;
+
+		// 데이터 다시 로드
+		await loadData();
+
+		// URL 업데이트 (선택사항)
+		const params = new URLSearchParams();
+		params.append('date', newDate);
+		params.append('type', 'all');
+		params.append('corpName', newCorpName);
+		window.history.pushState({}, '', `/center/print?${params.toString()}`);
 	}
 
 	// MonthDatePicker 이벤트 핸들러
@@ -178,57 +227,57 @@
 									<div class="flex w-full px-2 pt-2">
 										<button
 											type="button"
-											disabled={!hasData}
+											disabled={!hasData || isLoading}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'all' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
-												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && (selectedType = 'all')}
+												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && !isLoading && (selectedType = 'all')}
 										>
 											전체
 										</button>
 										<button
 											type="button"
-											disabled={!hasData}
+											disabled={!hasData || isLoading}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'cap' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
-												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && (selectedType = 'cap')}
+												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && !isLoading && (selectedType = 'cap')}
 										>
 											캡
 										</button>
 										<button
 											type="button"
-											disabled={!hasData}
+											disabled={!hasData || isLoading}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'partial'
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
-												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && (selectedType = 'partial')}
+												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && !isLoading && (selectedType = 'partial')}
 										>
 											파샬
 										</button>
 										<button
 											type="button"
-											disabled={!hasData}
+											disabled={!hasData || isLoading}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'custom'
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
-												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && (selectedType = 'custom')}
+												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && !isLoading && (selectedType = 'custom')}
 										>
 											커스텀
 										</button>
 										<button
 											type="button"
-											disabled={!hasData}
+											disabled={!hasData || isLoading}
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'allonfour'
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
-												{!hasData ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && (selectedType = 'allonfour')}
+												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
+											onclick={() => hasData && !isLoading && (selectedType = 'allonfour')}
 										>
 											올온포
 										</button>
@@ -361,7 +410,23 @@
 								<tbody
 									class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
 								>
-									{#if !hasData}
+									{#if isLoading}
+										<tr>
+											<td colspan="8" class="py-12 text-center">
+												<div class="flex flex-col items-center justify-center">
+													<div
+														class="mb-4 h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent"
+													></div>
+													<p class="text-lg font-medium text-gray-600 dark:text-gray-400">
+														서버에서 파일들을 불러오고 있습니다
+													</p>
+													<p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
+														잠시만 기다려주세요...
+													</p>
+												</div>
+											</td>
+										</tr>
+									{:else if !hasData}
 										<tr>
 											<td colspan="8" class="py-12 text-center">
 												<div class="flex flex-col items-center justify-center">

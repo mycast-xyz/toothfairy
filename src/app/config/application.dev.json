@@ -52,6 +52,12 @@
 				},
 				"progress": "/api/v0/cam/data/progress"
 			},
+			"data": {
+				"create": {
+					"ok": "/api/v0/center/data/create/ok",
+					"re": "/api/v0/center/data/create/re"
+				}
+			},
 			"setting": {
 				"users": "/api/v0/setting/users",
 				"user": "/api/v0/setting/user",
@@ -110,6 +116,14 @@
 				"maxAge": 604800000
 			}
 		}
+	},
+	"database": {
+		"type": "sqlite",
+		"host": "localhost",
+		"port": 3306,
+		"name": "toothfairy_dev",
+		"username": "dev_user",
+		"password": "dev_password"
 	},
 	"logging": {
 		"level": "debug",

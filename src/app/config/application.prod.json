@@ -49,6 +49,13 @@
 						"multi": "/api/v0/cam/data/download/multi"
 					},
 					"complete": "/api/v0/cam/data/complete"
+				},
+				"progress": "/api/v0/cam/data/progress"
+			},
+			"data": {
+				"create": {
+					"ok": "/api/v0/center/data/create/ok",
+					"re": "/api/v0/center/data/create/re"
 				}
 			},
 			"setting": {
@@ -75,8 +82,8 @@
 	"app": {
 		"name": "ToothFairy",
 		"version": "1.0.0",
-		"environment": "development",
-		"debug": true,
+		"environment": "production",
+		"debug": false,
 		"features": {
 			"socket": true,
 			"notifications": true,
@@ -85,7 +92,7 @@
 	},
 	"security": {
 		"jwt": {
-			"secret": "your-jwt-secret-key-dev",
+			"secret": "your-jwt-secret-key-prod",
 			"expiresIn": "1h",
 			"refreshExpiresIn": "7d"
 		},
@@ -97,22 +104,30 @@
 			"accessToken": {
 				"name": "access_token",
 				"httpOnly": true,
-				"secure": false,
+				"secure": true,
 				"sameSite": "lax",
 				"maxAge": 3600000
 			},
 			"refreshToken": {
 				"name": "refresh_token",
 				"httpOnly": true,
-				"secure": false,
+				"secure": true,
 				"sameSite": "lax",
 				"maxAge": 604800000
 			}
 		}
 	},
+	"database": {
+		"type": "sqlite",
+		"host": "localhost",
+		"port": 3306,
+		"name": "toothfairy_prod",
+		"username": "prod_user",
+		"password": "prod_password"
+	},
 	"logging": {
-		"level": "debug",
-		"file": "logs/app-dev.log",
-		"console": true
+		"level": "info",
+		"file": "logs/app-prod.log",
+		"console": false
 	}
 }

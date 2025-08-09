@@ -8,9 +8,15 @@ export const load: PageLoad = async ({ data }) => {
 	let initialProgressData = {};
 
 	try {
+		// ConfigService 설정 로드 대기 (최대 3초)
+		const configLoaded = await configService.waitForConfig(3000);
+		console.log('⏳ ConfigService 설정 로드 상태:', configLoaded);
+
 		// 설정에서 백엔드 baseUrl과 CAM API 엔드포인트 가져오기
 		const config = configService.getConfig();
-		if (!config) {
+		console.log('🔧 로드된 설정:', config);
+
+		if (!config || !configLoaded) {
 			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
 			// 기본 URL 사용
 			const response = await axios.get('http://localhost:3000/api/v0/cam/data/receipts');

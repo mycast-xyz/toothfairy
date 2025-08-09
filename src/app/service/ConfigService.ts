@@ -178,9 +178,15 @@ class ConfigService {
 						delete: '/api/v0/corp/delete'
 					},
 					file: {
-						check: '/api/v0/file/chk',
-						show: '/api/v0/file/show',
-						item: '/api/v0/file/item'
+						check: '/api/v0/center/file/chk',
+						show: '/api/v0/center/file/show',
+						item: '/api/v0/center/file/item'
+					},
+					data: {
+						create: {
+							ok: '/api/v0/center/data/create/ok',
+							re: '/api/v0/center/data/create/re'
+						}
 					},
 					invoice: {
 						list: '/api/v0/invoice/list',

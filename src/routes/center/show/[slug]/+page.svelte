@@ -3,6 +3,7 @@
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../../app/service/ToastService';
+	import { configService } from '../../../../app/service/ConfigService';
 	import MultiSTLViewer from '../../../../app/view/stlviewer/PrintOutPutViewer.svelte';
 	import Toast from '../../../../app/view/toast/Toast.svelte';
 
@@ -25,21 +26,23 @@
 	// 출력물 종류 한글 이름 반환
 	const getInfoName = (info: string) => infoNameMap[info] || '';
 
-	// STL 파일 관련 데이터 초기화
-	let stlFiles: string[] = [];
-	let stlData: Array<{ url: string; name: string }> = [];
+	// STL 파일 관련 데이터 반응형으로 초기화
+	let stlFiles = $state<string[]>([]);
+	let stlData = $state<Array<{ url: string; name: string }>>([]);
 
-	// 디렉토리에서 STL 파일 정보 추출
-	if (data.info.directory?.files) {
-		stlFiles = data.info.directory.files.map(
-			(file: string) =>
-				`${data.url}${data.endpoints.fileShow}?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
-		);
+	// 데이터 초기화 함수
+	function initializeSTLData() {
+		if (data.info?.directory?.files) {
+			stlFiles = data.info.directory.files.map(
+				(file: string) =>
+					`${data.url}${data.endpoints.fileShow}?filename=${data.info.id}@${data.info.directory.files.indexOf(file)}`
+			);
 
-		stlData = data.info.directory.files.map((file: string, index: number) => ({
-			url: stlFiles[index],
-			name: file
-		}));
+			stlData = data.info.directory.files.map((file: string, index: number) => ({
+				url: stlFiles[index],
+				name: file
+			}));
+		}
 	}
 
 	// 리메이크 파일 정보 처리를 위한 인터페이스
@@ -48,40 +51,42 @@
 		url: string;
 	}
 
-	// 리메이크 파일 상태 저장
-	let remakeInfo = {
+	// 리메이크 파일 상태 반응형으로 저장
+	let remakeInfo = $state({
 		ok: [] as RemakeFile[],
 		re: [] as RemakeFile[]
-	};
+	});
 
-	let normalUnitNum = data.info.normalUnitNum;
-	let remakeUnitNum = data.info.remakeUnitNum;
+	let normalUnitNum = $state(data.info?.normalUnitNum || 0);
+	let remakeUnitNum = $state(data.info?.remakeUnitNum || 0);
 
-	// 리메이크 파일 매칭 처리
-	if (data.info.directory?.remakeFiles) {
-		// OK 파일 매칭 함수
-		const matchFiles = (remakeFiles: string[]) => {
-			return remakeFiles
-				.map((remakeFile: string) => {
-					const fileIndex = data.info.directory.files.findIndex(
-						(file: string) => file.split('@')[1] === remakeFile
-					);
-					return fileIndex >= 0
-						? {
-								name: data.info.directory.files[fileIndex],
-								url: stlFiles[fileIndex]
-							}
-						: null;
-				})
-				.filter((item: RemakeFile | null): item is RemakeFile => item !== null);
-		};
+	// 리메이크 파일 매칭 처리 함수
+	function initializeRemakeFiles() {
+		if (data.info?.directory?.remakeFiles && stlFiles.length > 0) {
+			// OK 파일 매칭 함수
+			const matchFiles = (remakeFiles: string[]) => {
+				return remakeFiles
+					.map((remakeFile: string) => {
+						const fileIndex = data.info.directory.files?.findIndex(
+							(file: string) => file.split('@')[1] === remakeFile
+						);
+						return fileIndex >= 0
+							? {
+									name: data.info.directory.files[fileIndex],
+									url: stlFiles[fileIndex]
+								}
+							: null;
+					})
+					.filter((item: RemakeFile | null): item is RemakeFile => item !== null);
+			};
 
-		// OK/RE 파일 매칭 실행
-		if (data.info.directory.remakeFiles.ok) {
-			remakeInfo.ok = matchFiles(data.info.directory.remakeFiles.ok);
-		}
-		if (data.info.directory.remakeFiles.re) {
-			remakeInfo.re = matchFiles(data.info.directory.remakeFiles.re);
+			// OK/RE 파일 매칭 실행
+			if (data.info.directory.remakeFiles.ok) {
+				remakeInfo.ok = matchFiles(data.info.directory.remakeFiles.ok);
+			}
+			if (data.info.directory.remakeFiles.re) {
+				remakeInfo.re = matchFiles(data.info.directory.remakeFiles.re);
+			}
 		}
 	}
 
@@ -101,13 +106,26 @@
 
 	// 컴포넌트 마운트 시 초기화
 	onMount(() => {
+		// 데이터 초기화 순서가 중요함
+		initializeSTLData();
+		setTimeout(() => {
+			initializeRemakeFiles();
+			initializeSelectedFiles();
+		}, 0);
+
+		// 뷰어 크기 초기화
 		updateDimensions();
 		window.addEventListener('resize', updateDimensions);
 		return () => window.removeEventListener('resize', updateDimensions);
 	});
 
 	// 선택된 파일 관리
-	let selectedFiles = writable<string[]>(remakeInfo.ok.map((file) => file.url));
+	let selectedFiles = writable<string[]>([]);
+
+	// 선택된 파일 초기화 함수
+	function initializeSelectedFiles() {
+		selectedFiles.set(remakeInfo.ok.map((file) => file.url));
+	}
 
 	// 파일 선택 이벤트 핸들러
 	const handleCheckboxChange = (file: string, checked: boolean) => {
@@ -120,9 +138,13 @@
 
 	// API 응답 처리 함수
 	const handleApiResponse = async (response: any) => {
+		const backendUrl = data.url;
+
 		if (response === 'normal') {
 			try {
-				const response = await fetch(`${data.url}${data.endpoints.dataCreateOk}`, {
+				const apiUrl = `${backendUrl}${data.endpoints.dataCreateOk}`;
+
+				const response = await fetch(apiUrl, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -134,8 +156,8 @@
 				});
 
 				if (!response.ok) {
-					const data = await response.json();
-					showToast('error', data.resultMsg || '처리 중 오류가 발생했습니다.');
+					const responseData = await response.json();
+					showToast('error', responseData.resultMsg || '처리 중 오류가 발생했습니다.');
 				} else {
 					showToast('success', '처리가 완료되었습니다.');
 				}
@@ -145,7 +167,9 @@
 			}
 		} else if (response === 'remake') {
 			try {
-				const response = await fetch(`${data.url}${data.endpoints.dataCreateRe}`, {
+				const apiUrl = `${backendUrl}${data.endpoints.dataCreateRe}`;
+
+				const response = await fetch(apiUrl, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
@@ -157,8 +181,8 @@
 				});
 
 				if (!response.ok) {
-					const data = await response.json();
-					showToast('error', data.resultMsg || '처리 중 오류가 발생했습니다.');
+					const responseData = await response.json();
+					showToast('error', responseData.resultMsg || '처리 중 오류가 발생했습니다.');
 				} else {
 					showToast('success', '처리가 완료되었습니다.');
 				}
@@ -303,10 +327,10 @@
 									<input
 										type="checkbox"
 										class="mr-2 h-4 w-4 rounded border-gray-300 text-violet-500"
-										value={file}
+										value={file.url}
 										onchange={(e) => {
 											const target = e.target as HTMLInputElement;
-											handleCheckboxChange(file, target.checked);
+											handleCheckboxChange(file.url, target.checked);
 										}}
 										checked={$selectedFiles.includes(file.url)}
 									/>

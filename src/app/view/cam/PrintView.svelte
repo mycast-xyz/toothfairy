@@ -6,6 +6,7 @@
 	import PageHeaderBar from '../components/PageHeaderBar.svelte';
 	import { camPrintViewService } from '../../service/CamPrintView';
 	import { toastStore } from '../../service/ToastService';
+	import { WindowService } from '../../service/WindowService';
 	import {
 		getStatusColor,
 		getStatusText,
@@ -34,6 +35,10 @@
 	let unifiedMonitorActive = false;
 	let allSelected = false;
 
+	// 탭 필터 상태
+	let activeTab = 'all'; // 'all', 'received', 'processing', 'completed'
+	let isTabClick = false; // 탭 클릭으로 인한 상태 변경인지 구분
+
 	// 서비스 스토어 구독
 	camPrintViewService.selectedItems.subscribe((val) => (selectedItems = val));
 	camPrintViewService.isConnected.subscribe((val) => (isConnected = val));
@@ -41,7 +46,32 @@
 	camPrintViewService.progressBarData.subscribe((val) => (progressBarData = val));
 	camPrintViewService.printListData.subscribe((val) => (printListData = val));
 	camPrintViewService.searchQuery.subscribe((val) => (searchQuery = val));
-	camPrintViewService.statusFilter.subscribe((val) => (statusFilter = val));
+	camPrintViewService.statusFilter.subscribe((val) => {
+		statusFilter = val;
+
+		// 탭 클릭이 아닌 외부 상태 변경 시에만 탭 동기화
+		if (!isTabClick) {
+			switch (val) {
+				case '':
+					activeTab = 'all';
+					break;
+				case 'received':
+					activeTab = 'received';
+					break;
+				case 'processing':
+					activeTab = 'processing';
+					break;
+				case 'completed':
+					activeTab = 'completed';
+					break;
+				default:
+					activeTab = 'all';
+			}
+		}
+
+		// 플래그 리셋
+		isTabClick = false;
+	});
 	camPrintViewService.folderFilter.subscribe((val) => (folderFilter = val));
 	camPrintViewService.categoryFilter.subscribe((val) => (categoryFilter = val));
 	camPrintViewService.startDate.subscribe((val) => (startDate = val));
@@ -62,6 +92,91 @@
 		camPrintViewService.toggleAll(isChecked);
 	}
 
+	// 탭 클릭 핸들러
+	function handleTabClick(tab: string) {
+		if (activeTab === tab) return; // 이미 선택된 탭이면 무시
+
+		// 탭 클릭으로 인한 변경임을 표시
+		isTabClick = true;
+		activeTab = tab;
+		console.log('📂 탭 변경:', tab);
+
+		// 탭에 따른 상태 필터 적용
+		switch (tab) {
+			case 'all':
+				camPrintViewService.statusFilter.set('');
+				break;
+			case 'received':
+				camPrintViewService.statusFilter.set('received');
+				break;
+			case 'processing':
+				camPrintViewService.statusFilter.set('processing');
+				break;
+			case 'completed':
+				camPrintViewService.statusFilter.set('completed');
+				break;
+			default:
+				camPrintViewService.statusFilter.set('');
+		}
+
+		// 필터링 실행
+		filterPrintList();
+	}
+
+	// 탭별 데이터 개수 계산
+	function getTabCount(tab: string) {
+		if (!printListData || printListData.length === 0) return 0;
+
+		switch (tab) {
+			case 'all':
+				return printListData.length;
+			case 'received':
+				return printListData.filter((item) => item.status === 'received').length;
+			case 'processing':
+				return printListData.filter((item) => item.status === 'processing').length;
+			case 'completed':
+				return printListData.filter((item) => item.status === 'completed').length;
+			default:
+				return 0;
+		}
+	}
+
+	// 파일명과 확장자를 분리해서 표시하는 함수들
+	function getDisplayFileName(item: any) {
+		const fileName = item.fileName || '';
+		const fileExtension = item.fileExtension || '';
+
+		// 파일명에서 확장자 제거
+		if (fileName.includes('.') && fileExtension && fileName.endsWith(`.${fileExtension}`)) {
+			return fileName.replace(`.${fileExtension}`, '');
+		}
+
+		// 파일명에 다른 확장자가 있으면 그대로 반환
+		if (fileName.includes('.')) {
+			return fileName;
+		}
+
+		return fileName;
+	}
+
+	function getFileExtension(item: any) {
+		const fileName = item.fileName || '';
+		const fileExtension = item.fileExtension || '';
+
+		// fileExtension 필드가 있으면 우선 사용
+		if (fileExtension) {
+			return fileExtension.startsWith('.') ? fileExtension : `.${fileExtension}`;
+		}
+
+		// 파일명에서 확장자 추출
+		if (fileName.includes('.')) {
+			const parts = fileName.split('.');
+			return `.${parts[parts.length - 1]}`;
+		}
+
+		return '';
+	}
+
 	onMount(async () => {
 		// 사용자 권한 확인
 		if (!data.user) {
@@ -71,17 +186,31 @@
 
 		console.log('🔍 CAM Print 페이지 사용자 정보:', data.user);
 		console.log('🔍 사용자 역할:', data.user.role);
+		console.log('🔍 페이지 전체 데이터:', data);
 
 		// 초기 데이터 로드 확인
 		if (data.initialPrintData && data.initialPrintData.length > 0) {
 			console.log(`✅ 초기 데이터 로드 완료: ${data.initialPrintData.length}개 출력물`);
 		} else if (data.initialPrintData && data.initialPrintData.length === 0) {
 			console.log('ℹ️ 현재 출력 대기 중인 작업이 없습니다.');
+		} else {
+			console.log('⚠️ 초기 데이터가 정의되지 않았습니다:', data.initialPrintData);
 		}
 
 		// 서비스 초기화 및 연결
+		console.log('🚀 CAM 서비스 초기화 시작');
 		await camPrintViewService.initialize(data);
-		camPrintViewService.connect();
+
+		console.log('🔗 CAM 서비스 연결 시작');
+		await camPrintViewService.connect();
+
+		// 연결 상태 모니터링
+		setTimeout(() => {
+			console.log('🔍 5초 후 연결 상태 확인:', isConnected);
+			if (!isConnected) {
+				console.warn('⚠️ 5초 경과 후에도 CAM 소켓에 연결되지 않았습니다.');
+			}
+		}, 5000);
 	});
 
 	onDestroy(() => {
@@ -123,6 +252,8 @@
 	}
 
 	async function clearSearch() {
+		// 탭을 전체로 리셋
+		activeTab = 'all';
 		await camPrintViewService.clearSearch();
 	}
 </script>
@@ -143,7 +274,7 @@
 				{/if}
 			</div>
 			<button
-				on:click={refreshFromDB}
+				onclick={refreshFromDB}
 				class="rounded bg-gray-500 px-3 py-3 text-xs text-white hover:bg-gray-600"
 			>
 				<i class="ri-refresh-line pr-1 text-base"></i>
@@ -151,7 +282,7 @@
 			</button>
 			{#if unifiedMonitorActive}
 				<button
-					on:click={stopUnifiedFolderMonitoring}
+					onclick={stopUnifiedFolderMonitoring}
 					class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
 				>
 					<i class="ri-stop-circle-line pr-1 text-base"></i>
@@ -159,13 +290,22 @@
 				</button>
 			{:else}
 				<button
-					on:click={startUnifiedFolderMonitoring}
+					onclick={startUnifiedFolderMonitoring}
 					class="rounded bg-green-500 px-3 py-1 text-xs text-white hover:bg-green-600"
 				>
 					<i class="ri-play-circle-line pr-1 text-base"></i>
 					모니터링 시작
 				</button>
 			{/if}
+			<button
+				onclick={() => {
+					WindowService.openModal('backup-reset');
+				}}
+				class="rounded bg-orange-500 px-3 py-3 text-xs text-white hover:bg-orange-600"
+			>
+				<i class="ri-database-line pr-1 text-base"></i>
+				백업 초기화
+			</button>
 		</div>
 	</PageHeaderBar>
 
@@ -180,7 +320,7 @@
 			/>
 		{/each}
 	</article>
-	<article class="w-full pl-3 pr-5 pt-3">
+	<article class="w-full px-2 pt-3">
 		<!-- 연결 상태 표시 -->
 		{#if connectionError}
 			<div class="mb-4 rounded-lg bg-red-100 p-4 text-red-700">
@@ -192,7 +332,7 @@
 		<!--
 		따로 써야 될 경우를 대비해서 남겨둠
     <button
-			on:click={downloadSelectedFiles}
+			onclick={downloadSelectedFiles}
 			class="rounded bg-green-500 px-3 py-3 text-xs text-white hover:bg-green-600"
 			disabled={selectedItems.length === 0}
 		>
@@ -202,34 +342,73 @@
 
 		<!-- 실시간 출력물 목록 -->
 		<article class="print-list">
-			<div class=" rounded-lg border border-gray-200 bg-white shadow">
+			<div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow">
 				<div class="flex flex-wrap items-center justify-between">
 					<!-- 탭 메뉴 -->
 					<div class="flex w-full px-2 pt-2">
 						<button
-							class="tab-btn min-w-24 border-b-2 border-violet-500 px-4 py-3 pt-2 text-sm font-semibold text-violet-600 focus:outline-none"
-							disabled
+							class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 hover:bg-gray-100 focus:outline-none {activeTab ===
+							'all'
+								? 'border-violet-500 bg-white text-violet-600'
+								: 'border-transparent text-gray-500 hover:text-gray-700'}"
+							onclick={() => handleTabClick('all')}
 						>
 							전체
+							<span
+								class="ml-1 rounded-full px-2 py-0.5 text-xs {activeTab === 'all'
+									? 'bg-violet-100 text-violet-700'
+									: 'bg-gray-200 text-gray-600'}"
+							>
+								{getTabCount('all')}
+							</span>
 						</button>
 						<button
-							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-							disabled
+							class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 hover:bg-gray-100 focus:outline-none {activeTab ===
+							'received'
+								? 'border-violet-500 bg-white text-violet-600'
+								: 'border-transparent text-gray-500 hover:text-gray-700'}"
+							onclick={() => handleTabClick('received')}
 						>
-							수신됨
+							다운로드 전
+							<span
+								class="ml-1 rounded-full px-2 py-0.5 text-xs {activeTab === 'received'
+									? 'bg-violet-100 text-violet-700'
+									: 'bg-gray-200 text-gray-600'}"
+							>
+								{getTabCount('received')}
+							</span>
 						</button>
 						<button
-							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-							disabled
+							class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 hover:bg-gray-100 focus:outline-none {activeTab ===
+							'processing'
+								? 'border-violet-500 bg-white text-violet-600'
+								: 'border-transparent text-gray-500 hover:text-gray-700'}"
+							onclick={() => handleTabClick('processing')}
 						>
-							처리중
+							다운로드 완료
+							<span
+								class="ml-1 rounded-full px-2 py-0.5 text-xs {activeTab === 'processing'
+									? 'bg-violet-100 text-violet-700'
+									: 'bg-gray-200 text-gray-600'}"
+							>
+								{getTabCount('processing')}
+							</span>
 						</button>
-
 						<button
-							class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-							disabled
+							class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 hover:bg-gray-100 focus:outline-none {activeTab ===
+							'completed'
+								? 'border-violet-500 bg-white text-violet-600'
+								: 'border-transparent text-gray-500 hover:text-gray-700'}"
+							onclick={() => handleTabClick('completed')}
 						>
 							완료
+							<span
+								class="ml-1 rounded-full px-2 py-0.5 text-xs {activeTab === 'completed'
+									? 'bg-violet-100 text-violet-700'
+									: 'bg-gray-200 text-gray-600'}"
+							>
+								{getTabCount('completed')}
+							</span>
 						</button>
 					</div>
 					<!-- 오른쪽 필터/검색 -->
@@ -242,7 +421,13 @@
 								<div class="relative">
 									<CustomDatePicker
 										isRange={true}
-										onDateChange={({ startDate, endDate }) => {
+										onDateChange={({
+											startDate,
+											endDate
+										}: {
+											startDate: Date | null;
+											endDate: Date | null;
+										}) => {
 											console.log('CustomDatePicker change event:', { startDate, endDate });
 
 											if (startDate) {
@@ -270,10 +455,10 @@
 								type="text"
 								placeholder="파일명 검색"
 								value={searchQuery}
-								on:input={(e) =>
+								oninput={(e) =>
 									camPrintViewService.searchQuery.set((e.target as HTMLInputElement).value)}
 								class="w-48 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-								on:keydown={(e) => {
+								onkeydown={(e) => {
 									if (e.key === 'Enter') filterPrintList();
 								}}
 							/>
@@ -281,7 +466,7 @@
 							<!-- 검색 버튼 -->
 							<button
 								class="rounded bg-violet-500 px-4 py-2 text-sm text-white hover:bg-violet-600"
-								on:click={filterPrintList}
+								onclick={filterPrintList}
 							>
 								검색
 							</button>
@@ -290,7 +475,7 @@
 							{#if searchQuery || startDate || endDate}
 								<button
 									class="rounded bg-gray-300 px-2 py-2 text-xs text-gray-700 hover:bg-gray-400"
-									on:click={clearSearch}
+									onclick={clearSearch}
 								>
 									초기화
 								</button>
@@ -299,208 +484,235 @@
 					</div>
 				</div>
 
-				<table class="min-w-full divide-y divide-gray-200">
-					<thead class="bg-gray-50">
-						<tr>
-							<th class="p-4">
-								<div class="flex items-center">
-									<input
-										id="checkbox-all"
-										type="checkbox"
-										on:change={toggleAll}
-										checked={allSelected}
-										class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
+				<!-- 테이블 래퍼 - 수평 스크롤 처리 -->
+				<div class="overflow-x-auto">
+					<table class="min-w-full divide-y divide-gray-200">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="w-12 p-4">
+									<div class="flex items-center">
+										<input
+											id="checkbox-all"
+											type="checkbox"
+											onchange={toggleAll}
+											checked={allSelected}
+											class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
+										/>
+										<label for="checkbox-all" class="sr-only">checkbox</label>
+									</div>
+								</th>
+								<th
+									class="w-24 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									<DropdownFilter
+										label="폴더"
+										options={folderOptions}
+										selected={folderFilter}
+										onSelect={(v) => {
+											camPrintViewService.folderFilter.set(v);
+											filterPrintList();
+										}}
+										bgColor="bg-gray-50"
+										textColor="text-gray-500"
+										hoverBgColor="bg-gray-100"
+										hoverTextColor="text-gray-500"
 									/>
-									<label for="checkbox-all" class="sr-only">checkbox</label>
-								</div>
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								<DropdownFilter
-									label="폴더"
-									options={folderOptions}
-									selected={folderFilter}
-									onSelect={(v) => {
-										camPrintViewService.folderFilter.set(v);
-										filterPrintList();
-									}}
-									bgColor="bg-gray-50"
-									textColor="text-gray-500"
-									hoverBgColor="bg-gray-100"
-									hoverTextColor="text-gray-500"
-								/>
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								<DropdownFilter
-									label="카테고리"
-									options={categoryOptions}
-									selected={categoryFilter}
-									onSelect={(v) => {
-										camPrintViewService.categoryFilter.set(v);
-										filterPrintList();
-									}}
-									bgColor="bg-gray-50"
-									textColor="text-gray-500"
-									hoverBgColor="bg-gray-100"
-									hoverTextColor="text-gray-500"
-								/>
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								디렉터리
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								파일명
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								<DropdownFilter
-									label="상태"
-									options={statusOptions}
-									selected={statusFilter}
-									onSelect={(v) => {
-										camPrintViewService.statusFilter.set(v);
-										filterPrintList();
-									}}
-									bgColor="bg-gray-50"
-									textColor="text-gray-500"
-									hoverBgColor="bg-gray-100"
-									hoverTextColor="text-gray-500"
-								/>
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								수신시간
-							</th>
-							<th
-								class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-							>
-								작업확인
-							</th>
-						</tr>
-					</thead>
-					{#if printListData.length > 0}
-						<tbody class="divide-y divide-gray-200 bg-white">
-							{#each printListData as item (item.id)}
-								<tr class="hover:bg-gray-50">
-									<td class="p-4">
-										<div class="flex items-center">
-											<input
-												type="checkbox"
-												value={item.id}
-												checked={selectedItems.includes(item.id)}
-												disabled={item.status === 'completed'}
-												on:change={(e) => {
-													if (item.status === 'completed') return;
-													const checked = (e.target as HTMLInputElement).checked;
-													camPrintViewService.toggleItem(item.id, checked);
-												}}
-												class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
-												id={'checkbox-' + item.id}
-											/>
-											<label for={'checkbox-' + item.id} class="sr-only">checkbox</label>
-										</div>
-									</td>
+								</th>
+								<th
+									class="w-28 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									<DropdownFilter
+										label="카테고리"
+										options={categoryOptions}
+										selected={categoryFilter}
+										onSelect={(v) => {
+											camPrintViewService.categoryFilter.set(v);
+											filterPrintList();
+										}}
+										bgColor="bg-gray-50"
+										textColor="text-gray-500"
+										hoverBgColor="bg-gray-100"
+										hoverTextColor="text-gray-500"
+									/>
+								</th>
+								<th
+									class="min-w-48 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									디렉터리
+								</th>
+								<th
+									class="min-w-48 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									파일명
+								</th>
+								<th
+									class="w-20 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									확장자
+								</th>
+								<th
+									class="w-24 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									<DropdownFilter
+										label="상태"
+										options={statusOptions}
+										selected={statusFilter}
+										onSelect={(v) => {
+											camPrintViewService.statusFilter.set(v);
+											filterPrintList();
+										}}
+										bgColor="bg-gray-50"
+										textColor="text-gray-500"
+										hoverBgColor="bg-gray-100"
+										hoverTextColor="text-gray-500"
+									/>
+								</th>
+								<th
+									class="w-32 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									수신시간
+								</th>
+								<th
+									class="w-24 px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+								>
+									작업확인
+								</th>
+							</tr>
+						</thead>
+						{#if printListData.length > 0}
+							<tbody class="divide-y divide-gray-200 bg-white">
+								{#each printListData as item (item.id)}
+									{@const displayFileName = getDisplayFileName(item)}
+									{@const fileExtension = getFileExtension(item)}
+									<tr class="align-top hover:bg-gray-50">
+										<td class="p-4 align-top">
+											<div class="flex items-start pt-1">
+												<input
+													type="checkbox"
+													value={item.id}
+													checked={selectedItems.includes(item.id)}
+													disabled={item.status === 'completed'}
+													onchange={(e) => {
+														if (item.status === 'completed') return;
+														const checked = (e.target as HTMLInputElement).checked;
+														camPrintViewService.toggleItem(item.id, checked);
+													}}
+													class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-blue-600 focus:ring-2 focus:ring-blue-500"
+													id={'checkbox-' + item.id}
+												/>
+												<label for={'checkbox-' + item.id} class="sr-only">checkbox</label>
+											</div>
+										</td>
 
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										<span
-											class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {item.folderType ===
-											'urgent'
-												? 'bg-red-100 text-red-800'
-												: 'bg-blue-100 text-blue-800'}"
-										>
-											{item.folderType === 'urgent' ? '긴급' : '일반'}
-										</span>
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										{#if item.category}
+										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
 											<span
-												class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {getCategoryColor(
-													item.category
+												class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {item.folderType ===
+												'urgent'
+													? 'bg-red-100 text-red-800'
+													: 'bg-blue-100 text-blue-800'}"
+											>
+												{item.folderType === 'urgent' ? '긴급' : '일반'}
+											</span>
+										</td>
+										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+											{#if item.category}
+												<span
+													class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {getCategoryColor(
+														item.category
+													)}"
+												>
+													{getCategoryText(item.category)}
+												</span>
+											{:else}
+												-
+											{/if}
+										</td>
+										<td class="min-w-48 px-6 py-4 text-sm text-gray-500">
+											{#if item.directory}
+												<span
+													class="block break-all text-xs leading-relaxed text-gray-600"
+													title={item.directory}>{item.directory}</span
+												>
+											{:else}
+												-
+											{/if}
+										</td>
+										<td class="min-w-48 max-w-64 px-6 py-4 text-sm font-medium text-gray-900">
+											{#if item.status === 'completed'}
+												<span
+													class="block cursor-not-allowed truncate text-gray-400"
+													title={displayFileName}
+												>
+													{displayFileName}
+												</span>
+											{:else}
+												<button
+													onclick={() => downloadFile(item.id)}
+													class="block w-full cursor-pointer truncate border-none bg-transparent p-0 text-left text-blue-600 hover:underline"
+													title={displayFileName}
+												>
+													{displayFileName}
+												</button>
+											{/if}
+										</td>
+										<td class="w-20 px-6 py-4 text-sm text-gray-500">
+											{#if fileExtension}
+												<span class="text-xs font-medium">
+													{fileExtension}
+												</span>
+											{:else}
+												-
+											{/if}
+										</td>
+										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+											<span
+												class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {getStatusColor(
+													item.status
 												)}"
 											>
-												{getCategoryText(item.category)}
+												{getStatusText(item.status)}
 											</span>
-										{:else}
-											-
-										{/if}
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										{#if item.directory}
-											<span class="text-xs text-gray-600">{item.directory}</span>
-										{:else}
-											-
-										{/if}
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-										{#if item.status === 'completed'}
-											<span class="cursor-not-allowed text-gray-400">{item.fileName}</span>
-										{:else}
-											<a
-												href="#"
-												on:click|preventDefault={() => downloadFile(item.id)}
-												class="cursor-pointer text-blue-600 hover:underline"
-											>
-												{item.fileName}
-											</a>
-										{/if}
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										<span
-											class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {getStatusColor(
-												item.status
-											)}"
-										>
-											{getStatusText(item.status)}
-										</span>
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										{item.receivedAt ? new Date(item.receivedAt).toLocaleTimeString() : '-'}
-									</td>
-									<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-										{#if item.status === 'processing'}
-											<button
-												on:click={() => startPrintJob(item.id)}
-												class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
-											>
-												완료
-											</button>
-										{:else if item.status === 'completed'}
-											<button
-												on:click={() => stopPrintJob(item.id)}
-												class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
-											>
-												취소
-											</button>
-										{:else}
-											-
-										{/if}
+										</td>
+										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+											{item.receivedAt ? new Date(item.receivedAt).toLocaleTimeString() : '-'}
+										</td>
+										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+											{#if item.status === 'processing'}
+												<button
+													onclick={() => startPrintJob(item.id)}
+													class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
+												>
+													완료
+												</button>
+											{:else if item.status === 'completed'}
+												<button
+													onclick={() => stopPrintJob(item.id)}
+													class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
+												>
+													취소
+												</button>
+											{:else}
+												-
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						{:else}
+							<tbody class="rounded-lg border border-gray-200 bg-white p-8 text-center">
+								<tr>
+									<td colspan="8" class="text-gray-500">
+										<p class="py-10 text-gray-500">
+											{isConnected
+												? '현재 출력 대기 중인 작업이 없습니다.'
+												: '데이터를 불러오는 중...'}
+										</p>
 									</td>
 								</tr>
-							{/each}
-						</tbody>
-					{:else}
-						<tbody class="rounded-lg border border-gray-200 bg-white p-8 text-center">
-							<tr>
-								<td colspan="7" class="text-gray-500">
-									<p class="py-10 text-gray-500">
-										{isConnected
-											? '현재 출력 대기 중인 작업이 없습니다.'
-											: '데이터를 불러오는 중...'}
-									</p>
-								</td>
-							</tr>
-						</tbody>
-					{/if}
-				</table>
+							</tbody>
+						{/if}
+					</table>
+				</div>
 			</div>
 		</article>
 	</article>

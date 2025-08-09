@@ -5,4 +5,5 @@ export type ModalType =
 	| 'userrole-add'
 	| 'userrole-edit'
 	| 'delete-confirm'
-	| 'edit-user-role';
+	| 'edit-user-role'
+	| 'backup-reset';
