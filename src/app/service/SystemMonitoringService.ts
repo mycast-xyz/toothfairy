@@ -91,8 +91,7 @@ class SystemMonitoringService {
 			const { io } = await import('socket.io-client');
 
 			// 모니터링 전용 소켓은 3000 포트로 고정
-			const baseUrl = configService.getBackendUrl() || 'http://localhost:3000';
-			const socketUrl = baseUrl.replace(/:\d+/, ':3000');
+			const socketUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
 			console.log('🔌 시스템 모니터링 소켓 초기화:', socketUrl);
@@ -288,8 +287,15 @@ class SystemMonitoringService {
 
 	// 모니터링 전용 백엔드 URL (포트 3000 고정)
 	private getMonitoringBackendUrl(): string {
-		const baseUrl = configService.getBackendUrl() || 'http://localhost:3000';
-		return baseUrl.replace(/:\d+/, ':3000');
+		const baseUrl = configService.getBackendUrl();
+		if (!baseUrl) {
+			return 'http://localhost:3000'; // 백업용 로컬호스트
+		}
+
+		// 기존 URL의 포트를 3000으로 변경
+		const url = new URL(baseUrl);
+		url.port = '3000';
+		return url.toString();
 	}
 
 	// REST API를 통한 시스템 정보 조회
