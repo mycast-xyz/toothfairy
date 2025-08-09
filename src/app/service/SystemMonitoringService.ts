@@ -90,7 +90,9 @@ class SystemMonitoringService {
 			// Socket.IO 동적 임포트
 			const { io } = await import('socket.io-client');
 
-			const socketUrl = configService.getSocketUrl() || 'http://localhost:3000';
+			// 모니터링 전용 소켓은 3000 포트로 고정
+			const baseUrl = configService.getBackendUrl() || 'http://localhost:3000';
+			const socketUrl = baseUrl.replace(/:\d+/, ':3000');
 			const token = await authService.getJwtToken();
 
 			console.log('🔌 시스템 모니터링 소켓 초기화:', socketUrl);
@@ -284,10 +286,16 @@ class SystemMonitoringService {
 		}
 	}
 
+	// 모니터링 전용 백엔드 URL (포트 3000 고정)
+	private getMonitoringBackendUrl(): string {
+		const baseUrl = configService.getBackendUrl() || 'http://localhost:3000';
+		return baseUrl.replace(/:\d+/, ':3000');
+	}
+
 	// REST API를 통한 시스템 정보 조회
 	async fetchSystemInfo(): Promise<SystemInfo | null> {
 		try {
-			const backendUrl = configService.getBackendUrl();
+			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
 			const response = await fetch(`${backendUrl}/api/v0/monitoring/system`, {
@@ -320,7 +328,7 @@ class SystemMonitoringService {
 	// 네트워크 드라이브 정보 조회
 	async fetchNetworkDrives(): Promise<any> {
 		try {
-			const backendUrl = configService.getBackendUrl();
+			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
 			const response = await fetch(`${backendUrl}/api/v0/monitoring/network-drives`, {
@@ -359,7 +367,7 @@ class SystemMonitoringService {
 	// 네트워크 스토리지 요약 정보 조회
 	async fetchNetworkStorageSummary(): Promise<any> {
 		try {
-			const backendUrl = configService.getBackendUrl();
+			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
 			const response = await fetch(`${backendUrl}/api/v0/monitoring/network-storage-summary`, {
@@ -393,7 +401,7 @@ class SystemMonitoringService {
 	// 헬스체크
 	async checkHealth(): Promise<boolean> {
 		try {
-			const backendUrl = configService.getBackendUrl();
+			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
 			const response = await fetch(`${backendUrl}/api/v0/monitoring/health`, {
