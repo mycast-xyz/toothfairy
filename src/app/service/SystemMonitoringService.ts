@@ -453,17 +453,19 @@ export function formatBytes(bytes: number): string {
 	return value.toFixed(decimals) + ' ' + sizes[i];
 }
 
-// 디스크 용량 전용 포맷터 (이미 GB 단위로 받은 숫자)
-export function formatDiskSize(gbValue: number): string {
-	if (gbValue === 0) return '0 GB';
+// 디스크 용량 전용 포맷터 (기가바이트 고정)
+export function formatDiskSize(bytes: number): string {
+	if (bytes === 0) return '0 GB';
 
-	// 1GB 미만은 소수점 2자리, 1GB 이상은 소수점 1자리
-	if (gbValue < 1) {
-		return gbValue.toFixed(2) + ' GB';
-	} else if (gbValue < 10) {
-		return gbValue.toFixed(1) + ' GB';
+	const gb = bytes / (1024 * 1024 * 1024);
+
+	// 1GB 미만은 소수점 3자리, 1GB 이상은 소수점 2자리
+	if (gb < 1) {
+		return gb.toFixed(3) + ' GB';
+	} else if (gb < 10) {
+		return gb.toFixed(2) + ' GB';
 	} else {
-		return gbValue.toFixed(0) + ' GB';
+		return gb.toFixed(1) + ' GB';
 	}
 }
 
