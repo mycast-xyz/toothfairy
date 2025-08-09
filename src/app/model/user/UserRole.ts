@@ -1,5 +1,5 @@
 // 사용자 권한 타입 정의
-export type UserRole = 'all_admin' | 'all_lab' | 'all_center' | 'all_cam' | 'user';
+export type UserRole = 'all_admin' | 'all_lab' | 'all_center' | 'all_cam' | 'admin' | 'user';
 
 // 사용자 정보 인터페이스
 export interface User {
@@ -128,6 +128,13 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		label: '사이트 관리',
 		icon: 'ri-settings-2-line',
 		roles: ['all_admin'],
+		section: '설정'
+	},
+	{
+		path: '/setting/monitoring',
+		label: '시스템 모니터링',
+		icon: 'ri-dashboard-line',
+		roles: ['all_admin', 'admin'],
 		section: '설정'
 	}
 ];

@@ -206,6 +206,20 @@ class ConfigService {
 						user: '/api/v0/setting/user',
 						userrole: '/api/v0/setting/roles',
 						site: '/api/v0/setting/site'
+					},
+					monitoring: {
+						system: '/api/v0/monitoring/system',
+						summary: '/api/v0/monitoring/summary',
+						cpu: '/api/v0/monitoring/cpu',
+						memory: '/api/v0/monitoring/memory',
+						disk: '/api/v0/monitoring/disk',
+						network: '/api/v0/monitoring/network',
+						process: '/api/v0/monitoring/process',
+						health: '/api/v0/monitoring/health',
+						start: '/api/v0/monitoring/start',
+						stop: '/api/v0/monitoring/stop',
+						networkDrives: '/api/v0/monitoring/network-drives',
+						networkStorageSummary: '/api/v0/monitoring/network-storage-summary'
 					}
 				}
 			},

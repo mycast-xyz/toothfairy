@@ -415,7 +415,7 @@ export class CamPrintViewService {
 			const filterParams: CamFilterParams = {};
 
 			if (searchQuery.trim()) {
-				filterParams.filename = searchQuery.trim();
+				filterParams.title = searchQuery.trim();
 			}
 			if (statusFilter) {
 				filterParams.status = statusFilter;
