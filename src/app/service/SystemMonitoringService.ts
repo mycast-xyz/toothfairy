@@ -295,6 +295,8 @@ class SystemMonitoringService {
 		// 기존 URL의 포트를 3000으로 변경
 		const url = new URL(baseUrl);
 		url.port = '3000';
+
+		console.log('🔌 모니터링 전용 백엔드 URL:', url.toString());
 		return url.toString();
 	}
 
@@ -304,7 +306,7 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}/api/v0/monitoring/system`, {
+			const response = await fetch(`${backendUrl}api/v0/monitoring/system`, {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -337,7 +339,7 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}/api/v0/monitoring/network-drives`, {
+			const response = await fetch(`${backendUrl}api/v0/monitoring/network-drives`, {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -376,7 +378,7 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}/api/v0/monitoring/network-storage-summary`, {
+			const response = await fetch(`${backendUrl}api/v0/monitoring/network-storage-summary`, {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${token}`,
@@ -410,7 +412,7 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}/api/v0/monitoring/health`, {
+			const response = await fetch(`${backendUrl}api/v0/monitoring/health`, {
 				method: 'GET',
 				headers: {
 					Authorization: `Bearer ${token}`,
