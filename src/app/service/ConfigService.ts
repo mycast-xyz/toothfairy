@@ -37,6 +37,13 @@ export interface BaseConfig {
 			secret: string;
 			expiresIn: string;
 			refreshExpiresIn: string;
+			autoRefresh?: {
+				enabled: boolean;
+				threshold: number;
+				backgroundCheck: boolean;
+				activityBased: boolean;
+				activityTimeout: number;
+			};
 		};
 		cors: {
 			origin: string[];
@@ -251,7 +258,14 @@ class ConfigService {
 				jwt: {
 					secret: 'default-jwt-secret',
 					expiresIn: '1h',
-					refreshExpiresIn: '7d'
+					refreshExpiresIn: '7d',
+					autoRefresh: {
+						enabled: true,
+						threshold: 10 * 60 * 1000, // 10분 전에 갱신
+						backgroundCheck: true,
+						activityBased: true,
+						activityTimeout: 5 * 60 * 1000 // 5분 동안 활동이 없으면 체크
+					}
 				},
 				cors: {
 					origin: ['http://localhost:5173', 'http://localhost:3000'],
@@ -402,7 +416,42 @@ class ConfigService {
 	}
 
 	getRefreshTokenCookieConfig(): BaseConfig['security']['cookies']['refreshToken'] | null {
-		return this.get('security.cookies.refreshToken') || null;
+		return this.config?.security?.cookies?.refreshToken || null;
+	}
+
+	/**
+	 * JWT 자동 갱신 설정 반환
+	 */
+	getJwtAutoRefreshConfig(): any {
+		return this.config?.security?.jwt?.autoRefresh || null;
+	}
+
+	/**
+	 * JWT 자동 갱신이 활성화되어 있는지 확인
+	 */
+	isJwtAutoRefreshEnabled(): boolean {
+		return this.config?.security?.jwt?.autoRefresh?.enabled === true;
+	}
+
+	/**
+	 * JWT 토큰 갱신 임계값 반환 (밀리초)
+	 */
+	getJwtRefreshThreshold(): number {
+		return this.config?.security?.jwt?.autoRefresh?.threshold || 10 * 60 * 1000; // 기본값: 10분
+	}
+
+	/**
+	 * 사용자 활동 기반 토큰 갱신이 활성화되어 있는지 확인
+	 */
+	isActivityBasedRefreshEnabled(): boolean {
+		return this.config?.security?.jwt?.autoRefresh?.activityBased === true;
+	}
+
+	/**
+	 * 사용자 활동 타임아웃 반환 (밀리초)
+	 */
+	getActivityTimeout(): number {
+		return this.config?.security?.jwt?.autoRefresh?.activityTimeout || 5 * 60 * 1000; // 기본값: 5분
 	}
 
 	/**

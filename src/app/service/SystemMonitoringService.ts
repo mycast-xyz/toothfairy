@@ -95,6 +95,7 @@ class SystemMonitoringService {
 			const token = await authService.getJwtToken();
 
 			console.log('🔌 시스템 모니터링 소켓 초기화:', socketUrl);
+			console.log('🔑 JWT 토큰:', token ? '토큰 있음' : '토큰 없음');
 
 			this.socket = io(socketUrl, {
 				path: '/socket.io',
@@ -102,7 +103,12 @@ class SystemMonitoringService {
 					token
 				},
 				autoConnect: false,
-				forceNew: false
+				forceNew: true, // 새로운 연결 강제
+				reconnection: true,
+				reconnectionAttempts: 5,
+				reconnectionDelay: 2000,
+				timeout: 10000,
+				transports: ['websocket', 'polling']
 			}) as MonitoringSocket;
 
 			this.setupEventHandlers();
@@ -118,6 +124,8 @@ class SystemMonitoringService {
 		// 연결 성공
 		this.socket.on('connect', () => {
 			console.log('✅ 시스템 모니터링 소켓 연결 성공');
+			console.log('📡 연결된 소켓 ID:', (this.socket as any)?.id);
+			console.log('🔗 연결된 URL:', this.getMonitoringBackendUrl());
 			isMonitoringConnected.set(true);
 			monitoringError.set(null);
 			this.reconnectAttempts = 0;
@@ -126,6 +134,7 @@ class SystemMonitoringService {
 		// 연결 해제
 		this.socket.on('disconnect', (reason) => {
 			console.log('❌ 시스템 모니터링 소켓 연결 해제:', reason);
+			console.log('🔄 자동 재연결 시도 중...');
 			isMonitoringConnected.set(false);
 			isMonitoringActive.set(false);
 		});
@@ -133,7 +142,18 @@ class SystemMonitoringService {
 		// 연결 오류
 		this.socket.on('connect_error', (error) => {
 			console.error('❌ 시스템 모니터링 소켓 연결 오류:', error);
-			monitoringError.set('모니터링 서버에 연결할 수 없습니다.');
+			console.error('🔗 시도한 URL:', this.getMonitoringBackendUrl());
+			console.error('⚠️ 에러 상세:', error.message);
+
+			this.reconnectAttempts++;
+			console.log(`🔄 재연결 시도 횟수: ${this.reconnectAttempts}/5`);
+
+			if (this.reconnectAttempts >= 5) {
+				monitoringError.set('모니터링 서버에 연결할 수 없습니다. (최대 재시도 초과)');
+			} else {
+				monitoringError.set(`모니터링 서버 연결 시도 중... (${this.reconnectAttempts}/5)`);
+			}
+
 			isMonitoringConnected.set(false);
 		});
 
@@ -288,16 +308,28 @@ class SystemMonitoringService {
 	// 모니터링 전용 백엔드 URL (포트 3000 고정)
 	private getMonitoringBackendUrl(): string {
 		const baseUrl = configService.getBackendUrl();
+		console.log('📡 ConfigService에서 가져온 baseUrl:', baseUrl);
+
 		if (!baseUrl) {
-			return 'http://localhost:3000'; // 백업용 로컬호스트
+			console.log('⚠️ baseUrl이 없어서 localhost:3000 사용');
+			return 'http://localhost:3000';
 		}
 
-		// 기존 URL의 포트를 3000으로 변경
-		const url = new URL(baseUrl);
-		url.port = '3000';
+		try {
+			// 기존 URL의 포트를 3000으로 변경
+			const url = new URL(baseUrl);
+			const originalPort = url.port;
+			url.port = '3000';
 
-		console.log('🔌 모니터링 전용 백엔드 URL:', url.toString());
-		return url.toString();
+			console.log(`🔄 포트 변경: ${originalPort} → 3000`);
+			console.log('🔌 최종 모니터링 URL:', url.toString());
+
+			return url.toString();
+		} catch (error) {
+			console.error('❌ URL 파싱 실패:', error);
+			console.log('🔄 localhost:3000으로 폴백');
+			return 'http://localhost:3000';
+		}
 	}
 
 	// REST API를 통한 시스템 정보 조회

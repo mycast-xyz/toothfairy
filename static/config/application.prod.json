@@ -85,12 +85,19 @@
 	},
 	"security": {
 		"jwt": {
-			"secret": "your-jwt-secret-key-dev",
+			"secret": "your-jwt-secret-key-prod",
 			"expiresIn": "1h",
-			"refreshExpiresIn": "7d"
+			"refreshExpiresIn": "7d",
+			"autoRefresh": {
+				"enabled": true,
+				"threshold": 600000,
+				"backgroundCheck": true,
+				"activityBased": true,
+				"activityTimeout": 300000
+			}
 		},
 		"cors": {
-			"origin": ["http://localhost:5173", "http://localhost:3000"],
+			"origin": ["https://yourdomain.com"],
 			"credentials": true
 		},
 		"cookies": {
