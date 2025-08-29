@@ -4,18 +4,25 @@ import { configService, getBackendUrl } from './ConfigService';
 
 class WindowServiceInit {
 	#modal: Writable<ModalType | null> = writable(null);
+	#modalData: Writable<any> = writable(null);
 
 	get modal(): Readable<ModalType | null> {
 		return this.#modal;
 	}
 
-	openModal(modal: ModalType) {
+	get modalData(): Readable<any> {
+		return this.#modalData;
+	}
+
+	openModal(modal: ModalType, data?: any) {
 		this.#modal.set(modal);
+		this.#modalData.set(data || null);
 		ModalView.set(true);
 	}
 
 	closeModal() {
 		this.#modal.set(null);
+		this.#modalData.set(null);
 		ModalView.set(false);
 	}
 }

@@ -29,8 +29,11 @@
 	// stlUrls가 변경될 때마다 initScene 호출
 	$: {
 		if (stlUrls && stlUrls.length > 0) {
-			console.log('STL URLs 변경됨:', stlUrls); // URL 로깅
+			console.log('[STL Viewer] STL URLs 변경됨:', stlUrls); // URL 로깅
+			console.log('[STL Viewer] Props 상태:', { stlUrls, unitScale, width, height });
 			initScene();
+		} else {
+			console.log('[STL Viewer] STL URLs가 비어있음:', stlUrls);
 		}
 	}
 
@@ -53,22 +56,40 @@
 
 	// STL 파일들을 비동기적으로 로드하는 함수
 	async function loadSTLFiles() {
+		console.log('[STL Viewer] loadSTLFiles 시작:', {
+			stlUrls,
+			urlCount: stlUrls.length,
+			unitScale,
+			canvas: !!canvas
+		});
+
+		if (!canvas) {
+			console.error('[STL Viewer] Canvas가 아직 준비되지 않음');
+			return;
+		}
+
 		const loader = new STLLoader();
 		const meshes: THREE.Mesh[] = [];
 
 		try {
 			// 각 URL에 대해 순차적으로 로드
-			for (const url of stlUrls) {
-				console.log('로드 시도 중:', url); // 로드 시도 로깅
+			for (let i = 0; i < stlUrls.length; i++) {
+				const url = stlUrls[i];
+				console.log(`[STL Viewer] 파일 ${i + 1}/${stlUrls.length} 로드 시도:`, url);
+
 				try {
 					const geometry = await new Promise<THREE.BufferGeometry>((resolve, reject) => {
 						loader.load(
 							url,
 							(geometry) => {
+								console.log(`[STL Viewer] 파일 ${i + 1} 로드 성공:`, url);
 								resolve(geometry);
 							},
-							(progress) => {},
+							(progress) => {
+								console.log(`[STL Viewer] 파일 ${i + 1} 로드 진행률:`, progress);
+							},
 							(error) => {
+								console.error(`[STL Viewer] 파일 ${i + 1} 로드 실패:`, url, error);
 								reject(error);
 							}
 						);
@@ -80,17 +101,20 @@
 					mesh.rotation.x = -Math.PI / 2; // 모델을 바닥에 맞게 회전
 					mesh.scale.set(unitScale, unitScale, unitScale); // 스케일 적용
 					meshes.push(mesh);
-				} catch (error) {}
+					console.log(`[STL Viewer] 메쉬 ${i + 1} 생성 완료`);
+				} catch (error) {
+					console.error(`[STL Viewer] 파일 ${i + 1} 처리 중 오류:`, error);
+				}
 			}
 
 			if (meshes.length > 0) {
-				console.log('로드된 메쉬 수:', meshes.length);
+				console.log('[STL Viewer] 로드된 메쉬 수:', meshes.length);
 				setupScene(meshes);
 			} else {
-				console.error('로드된 메쉬가 없습니다.');
+				console.error('[STL Viewer] 로드된 메쉬가 없습니다.');
 			}
 		} catch (error) {
-			console.error('STL 파일 로드 중 오류 발생:', error);
+			console.error('[STL Viewer] STL 파일 로드 중 오류 발생:', error);
 		}
 	}
 

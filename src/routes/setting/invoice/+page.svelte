@@ -31,7 +31,7 @@
 		);
 		params.append('corpName', $selectedCorpName.toString());
 
-		window.location.href = `/center/invoice?${params.toString()}`;
+		window.location.href = `/setting/invoice?${params.toString()}`;
 	}
 
 	// MonthDatePicker 이벤트 핸들러
@@ -59,22 +59,16 @@
 									<!-- 탭 메뉴 -->
 									<div class="flex w-full px-2 pt-2">
 										<button
-											class="tab-btn min-w-24 border-b-2 border-violet-500 px-4 py-3 pt-2 text-sm font-semibold text-violet-600 focus:outline-none"
+											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
 											disabled
 										>
-											전체
+											치과 청구서
 										</button>
 										<button
 											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
 											disabled
 										>
-											기공소
-										</button>
-										<button
-											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-											disabled
-										>
-											센터
+											기공소 청구서
 										</button>
 									</div>
 									<!-- 오른쪽 필터/검색 -->

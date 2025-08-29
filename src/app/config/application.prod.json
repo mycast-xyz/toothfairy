@@ -28,8 +28,9 @@
 			},
 			"company": {
 				"list": "/api/v0/corp/list",
+				"create": "/api/v0/corp/list",
 				"add": "/api/v0/corp/add",
-				"update": "/api/v0/corp/update",
+				"update": "/api/v0/corp/list/:id",
 				"delete": "/api/v0/corp/delete"
 			},
 			"file": {
@@ -63,6 +64,13 @@
 				"user": "/api/v0/setting/user",
 				"userrole": "/api/v0/setting/roles",
 				"site": "/api/v0/setting/site"
+			},
+			"price": {
+				"list": "/api/v0/price/list",
+				"upload": "/api/v0/price/upload",
+				"search": "/api/v0/price/search",
+				"type": "/api/v0/price/list/type",
+				"update": "/api/v0/price/list/:id"
 			},
 			"monitoring": {
 				"system": "/api/v0/monitoring/system",

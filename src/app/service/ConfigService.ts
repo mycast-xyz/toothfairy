@@ -86,34 +86,46 @@ class ConfigService {
 		try {
 			// 환경 변수에서 환경 설정 가져오기
 			this.environment = import.meta.env.VITE_APP_ENV || 'dev';
+			console.log('현재 환경:', this.environment);
 
 			// 브라우저 환경에서는 동적으로 설정 파일 로드
 			if (typeof window !== 'undefined') {
 				const configPath = `/config/application.${this.environment}.json`;
+				console.log('설정 파일 경로:', configPath);
 
 				try {
 					const response = await fetch(configPath);
+					console.log('설정 파일 응답 상태:', response.status);
+
 					if (response.ok) {
 						const loadedConfig = await response.json();
+						console.log('로드된 JSON 설정:', loadedConfig);
+
 						// 기본 설정과 병합
 						this.config = this.mergeWithDefaults(loadedConfig);
+						console.log('병합된 최종 설정:', this.config);
 					} else {
+						console.warn(`설정 파일 로드 실패 (${response.status}): ${response.statusText}`);
 						// 설정 파일을 찾을 수 없는 경우 기본값 사용
 						this.config = this.getDefaultConfig();
+						console.log('기본 설정 사용');
 					}
 				} catch (error) {
-					console.warn('설정 파일 로드 실패, 기본값 사용:', error);
+					console.warn('설정 파일 로드 중 오류 발생, 기본값 사용:', error);
 					this.config = this.getDefaultConfig();
+					console.log('기본 설정 사용 (오류로 인해)');
 				}
 			} else {
 				// 서버 환경에서는 기본값 사용
 				this.config = this.getDefaultConfig();
+				console.log('서버 환경: 기본 설정 사용');
 			}
 
 			// 설정 스토어 업데이트
 			configStore.set(this.config);
 
 			console.log(`설정 로드 완료 (환경: ${this.environment})`);
+			console.log('최종 API 엔드포인트:', this.config?.api?.endpoints?.company);
 		} catch (error) {
 			console.error('설정 로드 중 오류 발생:', error);
 			this.config = this.getDefaultConfig();
@@ -137,8 +149,13 @@ class ConfigService {
 
 		for (const key in source) {
 			if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+				// 객체인 경우 재귀적으로 병합
 				result[key] = this.deepMerge(target[key] || {}, source[key]);
+			} else if (Array.isArray(source[key])) {
+				// 배열인 경우 소스 배열로 완전 교체 (병합하지 않음)
+				result[key] = [...source[key]];
 			} else {
+				// 기본 값인 경우 소스 값으로 교체
 				result[key] = source[key];
 			}
 		}
@@ -180,8 +197,9 @@ class ConfigService {
 					},
 					company: {
 						list: '/api/v0/corp/list',
+						create: '/api/v0/corp/list',
 						add: '/api/v0/corp/add',
-						update: '/api/v0/corp/update',
+						update: '/api/v0/corp/list/:id', // 올바른 엔드포인트로 수정
 						delete: '/api/v0/corp/delete'
 					},
 					file: {
@@ -213,6 +231,13 @@ class ConfigService {
 						user: '/api/v0/setting/user',
 						userrole: '/api/v0/setting/roles',
 						site: '/api/v0/setting/site'
+					},
+					price: {
+						list: '/api/v0/price/list',
+						upload: '/api/v0/price/upload',
+						search: '/api/v0/price/search',
+						type: '/api/v0/price/list/type',
+						update: '/api/v0/price/list/:id'
 					},
 					monitoring: {
 						system: '/api/v0/monitoring/system',
@@ -540,14 +565,17 @@ class ConfigService {
 	 */
 	async waitForConfig(maxWaitTime: number = 5000): Promise<boolean> {
 		const startTime = Date.now();
+		console.log('설정 로딩 대기 시작...');
 
 		while (Date.now() - startTime < maxWaitTime) {
 			if (this.config !== null) {
+				console.log('설정 로딩 완료 (대기 시간:', Date.now() - startTime, 'ms)');
 				return true;
 			}
 			await new Promise((resolve) => setTimeout(resolve, 100));
 		}
 
+		console.warn('설정 로딩 대기 시간 초과:', maxWaitTime, 'ms');
 		return false;
 	}
 }

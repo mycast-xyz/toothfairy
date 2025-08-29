@@ -13,16 +13,12 @@
 </script>
 
 <!-- Modal -->
-<div
-	id="modal"
-	tabindex="-1"
-	class="fixed left-0 right-0 top-0 z-40 h-[calc(100%-1rem)] max-h-full w-full overflow-y-auto overflow-x-hidden p-4 md:inset-0"
->
+<div id="modal" tabindex="-1" class="fixed inset-0 z-40 flex items-center justify-center p-4">
 	<div class="absolute inset-0 bg-black/50"></div>
-	<div class="relative h-full w-full">
+	<div class="relative max-h-[90vh] w-full">
 		<!-- Modal content -->
 		<div
-			class="absolute inset-x-0 top-5 mx-auto rounded-lg bg-white shadow-sm dark:bg-gray-700"
+			class="mx-auto rounded-lg bg-white shadow-sm dark:bg-gray-700"
 			class:max-w-md={size === 'small'}
 			class:max-w-lg={size === 'default'}
 			class:max-w-4xl={size === 'large'}
@@ -46,7 +42,7 @@
 				</button>
 			</div>
 			<!-- Modal body -->
-			<div class="space-y-4 p-4 md:p-5">
+			<div class="max-h-[calc(90vh-120px)] overflow-y-auto p-4 md:p-5">
 				{@render body()}
 			</div>
 			<!-- Modal footer -->
