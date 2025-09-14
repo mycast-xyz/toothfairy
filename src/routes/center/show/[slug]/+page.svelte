@@ -2,6 +2,8 @@
 	// 필요한 모듈 import
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { toastStore } from '../../../../app/service/ToastService';
 	import { configService } from '../../../../app/service/ConfigService';
 	import MultiSTLViewer from '../../../../app/view/stlviewer/PrintOutPutViewer.svelte';
@@ -10,6 +12,67 @@
 	// 토스트 메시지 표시 함수
 	const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
 		toastStore[type](message);
+	};
+
+	// 쿠키 관련 유틸리티 함수들
+	function getCookie(name: string): string | null {
+		if (typeof document === 'undefined') return null;
+		const nameEQ = name + '=';
+		const ca = document.cookie.split(';');
+		for (let i = 0; i < ca.length; i++) {
+			let c = ca[i];
+			while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+			if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+		}
+		return null;
+	}
+
+	// 뒤로가기 함수
+	const goBack = async () => {
+		debugLog('뒤로가기 버튼 클릭');
+		try {
+			// 쿠키에서 저장된 검색 조건들을 가져오기
+			const savedDate = getCookie('selectedDate');
+			const savedCorpName = getCookie('selectedCorpName');
+			const savedTabType = getCookie('selectedTabType');
+			const savedCompletionFilter = getCookie('completionFilter');
+
+			debugLog('쿠키에서 가져온 검색 조건들', {
+				savedDate,
+				savedCorpName,
+				savedTabType,
+				savedCompletionFilter
+			});
+
+			// URL 파라미터 구성
+			const params = new URLSearchParams();
+
+			// 쿠키에서 가져온 값들을 URL 파라미터로 설정
+			if (savedDate) {
+				params.append('date', savedDate);
+			}
+			if (savedCorpName) {
+				params.append('corpName', savedCorpName);
+			}
+			if (savedTabType) {
+				params.append('type', savedTabType);
+			}
+			if (savedCompletionFilter) {
+				params.append('completionFilter', savedCompletionFilter);
+			}
+
+			// center/print 페이지로 이동하면서 쿠키에서 가져온 검색 조건들 적용
+			const targetUrl = `/center/print${params.toString() ? '?' + params.toString() : ''}`;
+
+			debugLog('쿠키 기반 뒤로가기 URL', { targetUrl, params: params.toString() });
+
+			// SvelteKit의 goto를 사용하여 페이지 이동
+			await goto(targetUrl, { replaceState: true });
+		} catch (error) {
+			debugLog('뒤로가기 중 오류 발생', error);
+			// 오류 발생 시 기본 center/print 페이지로 이동
+			window.location.href = '/center/print';
+		}
 	};
 
 	// props에서 데이터 가져오기
@@ -507,7 +570,7 @@
 				>
 					<button
 						class="mr-2 rounded-full p-2 text-gray-400 hover:text-gray-800"
-						onclick={() => history.back()}
+						onclick={goBack}
 						aria-label="뒤로가기"
 					>
 						<i class="ri-arrow-left-line"></i>

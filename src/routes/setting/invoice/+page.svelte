@@ -3,8 +3,16 @@
 	import { writable } from 'svelte/store';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import MonthDatePicker from '../../../app/view/components/datepicker/MonthDatePicker.svelte';
+	import DentistryInvoiceList from '../../../app/view/invoice/DentistryInvoiceList.svelte';
+	import LabInvoiceList from '../../../app/view/invoice/LabInvoiceList.svelte';
 
 	const { data } = $props<{ data: any }>();
+
+	console.log(data.info);
+
+	// 탭 상태 관리
+	let activeTab = writable('dentistry'); // 'dentistry' 또는 'lab'
+
 	// 날짜 초기화 함수
 	function initializeDate() {
 		const today = new Date();
@@ -30,6 +38,7 @@
 			$selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0')
 		);
 		params.append('corpName', $selectedCorpName.toString());
+		params.append('tab', $activeTab);
 
 		window.location.href = `/setting/invoice?${params.toString()}`;
 	}
@@ -43,6 +52,11 @@
 		selectedYear.set(event.detail.year);
 		selectedMonth.set(event.detail.month);
 	}
+
+	// 탭 변경 핸들러
+	function handleTabChange(tab: string) {
+		activeTab.set(tab);
+	}
 </script>
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
@@ -53,20 +67,26 @@
 				<div class="-mx-4 -my-2 sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
 						<div class="border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg">
-							<!-- 상단 탭 및 필터 바 UI (이미지 참고) -->
+							<!-- 상단 탭 및 필터 바 UI -->
 							<div class="user-tab-bar w-full rounded-t-lg border-b border-gray-200 bg-white">
 								<div class="flex flex-wrap items-center justify-between">
 									<!-- 탭 메뉴 -->
 									<div class="flex w-full px-2 pt-2">
 										<button
-											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-											disabled
+											class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 {$activeTab ===
+											'dentistry'
+												? 'border-blue-500 text-blue-600'
+												: 'border-transparent text-gray-500 hover:text-gray-700'}"
+											onclick={() => handleTabChange('dentistry')}
 										>
 											치과 청구서
 										</button>
 										<button
-											class="tab-btn min-w-24 cursor-not-allowed border-b-2 border-transparent px-4 py-3 pt-2 text-sm font-semibold text-gray-400"
-											disabled
+											class="tab-btn min-w-24 cursor-pointer border-b-2 px-4 py-3 pt-2 text-sm font-semibold transition-colors duration-200 {$activeTab ===
+											'lab'
+												? 'border-blue-500 text-blue-600'
+												: 'border-transparent text-gray-500 hover:text-gray-700'}"
+											onclick={() => handleTabChange('lab')}
 										>
 											기공소 청구서
 										</button>
@@ -95,108 +115,12 @@
 										</div>
 									</div>
 								</div>
-								<table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-									<thead class="bg-gray-50 dark:bg-gray-800">
-										<tr>
-											<th
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												<span>회사명</span>
-											</th>
-											<th
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												캡
-											</th>
-											<th
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												<span>파샬</span>
-											</th>
-											<th
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												<span>커스텀</span>
-												<i class="float-right ml-auto"></i>
-											</th>
-											<th
-												scope="col"
-												class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-											>
-												<span>올온포</span>
-												<i class="float-right ml-auto"></i>
-											</th>
-										</tr>
-									</thead>
-									<tbody
-										class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900"
-									>
-										{#each data.info as item}
-											<tr>
-												<th
-													scope="col"
-													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-												>
-													<span>{item.name}</span>
-												</th>
-												<td
-													scope="col"
-													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-												>
-													<a href={`/center/invoice/${item.id}?date=${data.param.date}&item=cap`}>
-														<span
-															>출력: {item.invoice.cap.normal}, 리메이크: {item.invoice.cap
-																.remake}</span
-														>
-													</a>
-												</td>
-												<td
-													scope="col"
-													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-												>
-													<a
-														href={`/center/invoice/${item.id}?date=${data.param.date}&item=partial`}
-													>
-														<span
-															>출력: {item.invoice.partial.normal}, 리메이크: {item.invoice.partial
-																.remake}</span
-														>
-													</a>
-												</td>
-												<td
-													scope="col"
-													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-												>
-													<a
-														href={`/center/invoice/${item.id}?date=${data.param.date}&item=custom`}
-													>
-														<span
-															>출력: {item.invoice.custom.normal}, 리메이크: {item.invoice.custom
-																.remake}</span
-														>
-													</a>
-												</td>
-												<td
-													scope="col"
-													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
-												>
-													<a
-														href={`/center/invoice/${item.id}?date=${data.param.date}&item=allonfour`}
-													>
-														<span
-															>출력: {item.invoice.allonfour.normal}, 리메이크: {item.invoice
-																.allonfour.remake}</span
-														>
-													</a>
-												</td>
-											</tr>
-										{/each}
-									</tbody>
-								</table>
+								<!-- 탭에 따른 컴포넌트 렌더링 -->
+								{#if $activeTab === 'dentistry'}
+									<DentistryInvoiceList {data} />
+								{:else if $activeTab === 'lab'}
+									<LabInvoiceList {data} />
+								{/if}
 							</div>
 						</div>
 					</div>
@@ -205,36 +129,3 @@
 		</article>
 	</article>
 </main>
-
-<style lang="scss">
-	#sidebar {
-		&.hover {
-			.collapsed-hidden {
-				display: block;
-			}
-		}
-		&.active {
-			.collapsed-hidden {
-				display: block;
-			}
-		}
-
-		.collapsed-hidden {
-			display: none;
-		}
-	}
-	.dropdownMenu {
-		&.active {
-			.dropdownMenuContnet {
-				display: block;
-			}
-		}
-	}
-	.nav-search-box {
-		button.active {
-			background-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
-			border-color: rgb(236 72 153 / var(--tw-text-opacity, 1));
-			color: white;
-		}
-	}
-</style>

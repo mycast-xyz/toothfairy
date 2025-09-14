@@ -6,8 +6,9 @@
 	import SliderMenu from '../app/view/desktop/menu/SliderMenu.svelte';
 	import Toast from '../app/view/toast/Toast.svelte';
 	import DesktopModal from '../app/view/modal/DesktopModal.svelte';
-	import { writable } from 'svelte/store';
+	import { derived } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
+	import { page } from '$app/stores';
 	import { tokenRefreshService } from '../app/service/auth/TokenRefreshService';
 	import { authTokenService } from '../app/service/auth/AuthTokenService';
 	import { userActivityService } from '../app/service/auth/UserActivityService';
@@ -22,6 +23,9 @@
 	let tokenExpiryTime: string = '';
 	let timeUntilExpiry: string = '';
 	let userActivityStatus: string = '활성';
+
+	// /test 경로 확인
+	const isTestPath = derived(page, ($page) => $page.url.pathname.startsWith('/test'));
 
 	onMount(() => {
 		// 토큰 갱신 서비스 시작

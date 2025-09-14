@@ -2,7 +2,7 @@
 import axios from 'axios';
 // DB에서 최신 CAM 출력물 리스트를 API 백엔드 서버에서 받아오는 함수
 import { configService } from './ConfigService';
-import { authService } from './AuthService';
+import { authService } from './auth/AuthService';
 import { toastStore } from './ToastService';
 
 // 필터 파라미터 타입 정의

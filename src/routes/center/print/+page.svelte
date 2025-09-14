@@ -3,11 +3,33 @@
 	import type { PageData } from './$types';
 	import { writable } from 'svelte/store';
 	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import MonthDatePicker from '../../../app/view/components/datepicker/MonthDatePicker.svelte';
 	import { configService } from '../../../app/service/ConfigService';
 
 	const { data } = $props<{ data: any }>();
+
+	// 쿠키 관련 유틸리티 함수들
+	function setCookie(name: string, value: string, days: number = 30) {
+		if (!browser) return;
+		const expires = new Date();
+		expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+		document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
+	}
+
+	function getCookie(name: string): string | null {
+		if (!browser) return null;
+		const nameEQ = name + '=';
+		const ca = document.cookie.split(';');
+		for (let i = 0; i < ca.length; i++) {
+			let c = ca[i];
+			while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+			if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+		}
+		return null;
+	}
+
 	// 날짜 초기화 함수
 	function initializeDate() {
 		const today = new Date();
@@ -26,16 +48,101 @@
 	let selectedMonth = writable(month);
 	let selectedCorpName = writable('');
 
-	// selectedType을 반응형 변수로 변경
-	let selectedType = $state(data.param.type ? data.param.type : 'all');
+	// selectedType을 반응형 변수로 변경 - 쿠키에서 초기값 로드
+	let selectedType = $state('all'); // 기본값은 'all'
+
+	// 브라우저 환경에서 쿠키에서 저장된 탭 선택값 로드
+	$effect(() => {
+		if (browser) {
+			const savedTabType = getCookie('selectedTabType');
+			if (savedTabType && ['all', 'cap', 'partial', 'custom', 'allonfour'].includes(savedTabType)) {
+				selectedType = savedTabType;
+			} else if (
+				data.param.type &&
+				['all', 'cap', 'partial', 'custom', 'allonfour'].includes(data.param.type)
+			) {
+				// URL 파라미터가 있으면 우선 사용하고 쿠키에 저장
+				selectedType = data.param.type;
+				setCookie('selectedTabType', data.param.type, 30);
+			}
+		}
+	});
+
+	// 완료 상태 필터 추가 (전체/완료/미완료) - 쿠키에서 초기값 로드
+	let completionFilter = $state('all'); // 'all', 'completed', 'incomplete'
+
+	// 브라우저 환경에서 쿠키에서 저장된 값 로드
+	$effect(() => {
+		if (browser) {
+			const savedFilter = getCookie('completionFilter');
+			if (savedFilter && ['all', 'completed', 'incomplete'].includes(savedFilter)) {
+				completionFilter = savedFilter;
+			}
+
+			// 저장된 회사이름 로드
+			const savedCorpName = getCookie('selectedCorpName');
+			if (savedCorpName) {
+				selectedCorpName.set(savedCorpName);
+			}
+
+			// 저장된 날짜 로드
+			const savedDate = getCookie('selectedDate');
+			if (savedDate) {
+				const [year, month] = savedDate.split('-').map(Number);
+				if (year && month) {
+					selectedYear.set(year);
+					selectedMonth.set(month);
+				}
+			}
+		}
+	});
+
+	// completionFilter 변경 핸들러 - 쿠키에 저장
+	function handleCompletionFilterChange(value: string) {
+		completionFilter = value;
+		setCookie('completionFilter', value, 30); // 30일간 유지
+	}
+
+	// selectedType 변경 핸들러 - 쿠키에 저장
+	function handleTabTypeChange(value: string) {
+		selectedType = value;
+		setCookie('selectedTabType', value, 30); // 30일간 유지
+	}
+
+	// 회사이름 변경 핸들러 - 쿠키에 저장
+	function handleCorpNameChange(value: string) {
+		selectedCorpName.set(value);
+		setCookie('selectedCorpName', value, 30); // 30일간 유지
+	}
+
+	// 날짜 변경 핸들러 - 쿠키에 저장
+	function handleDateChange(year: number, month: number) {
+		selectedYear.set(year);
+		selectedMonth.set(month);
+		const dateString = `${year}-${month.toString().padStart(2, '0')}`;
+		setCookie('selectedDate', dateString, 30); // 30일간 유지
+	}
 
 	// 클라이언트 사이드에서 관리할 데이터와 로딩 상태
 	let apiData = $state<any[]>([]);
 	let isLoading = $state(true);
 
-	// 반응형 필터링: selectedType이 변경될 때마다 자동으로 필터링
+	// 반응형 필터링: selectedType과 완료 상태에 따라 자동으로 필터링
 	let filteredData = $derived(
-		selectedType === 'all' ? apiData : apiData.filter((item: any) => item.info === selectedType)
+		apiData.filter((item: any) => {
+			// 타입 필터링
+			const typeMatch = selectedType === 'all' || item.info === selectedType;
+
+			// 완료 상태 필터링
+			let completionMatch = true;
+			if (completionFilter === 'completed') {
+				completionMatch = item.normalUnitNum > 0 || item.remakeUnitNum > 0;
+			} else if (completionFilter === 'incomplete') {
+				completionMatch = item.normalUnitNum === 0 && item.remakeUnitNum === 0;
+			}
+
+			return typeMatch && completionMatch;
+		})
 	);
 
 	// 데이터가 있는지 확인하는 반응형 변수
@@ -114,6 +221,35 @@
 
 		return typeMap[info] || { color: '', name: '' };
 	}
+	// 유니코드 정규화 및 문자열 정리 유틸리티 함수
+	function normalizeString(str: string): string {
+		if (!str || typeof str !== 'string') return '';
+
+		// 유니코드 정규화 (NFC 형태로 통일)
+		let normalized = str.normalize('NFC');
+
+		// 다양한 공백 문자를 일반 공백으로 통일
+		normalized = normalized.replace(/[\s\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000\uFEFF]/g, ' ');
+
+		// 연속된 공백을 하나로 통일
+		normalized = normalized.replace(/\s+/g, ' ');
+
+		// 앞뒤 공백 제거
+		normalized = normalized.trim();
+
+		return normalized;
+	}
+
+	// 발송처명 매칭 함수 (유니코드 안전)
+	function isSenderMatch(sender: string, targetGroup: string[]): boolean {
+		const normalizedSender = normalizeString(sender).toLowerCase();
+
+		return targetGroup.some((target) => {
+			const normalizedTarget = normalizeString(target).toLowerCase();
+			return normalizedSender === normalizedTarget;
+		});
+	}
+
 	// 파일 정보 처리
 	function getFileInfo(fileName: any, sender: string) {
 		// 파일 배열 초기화
@@ -131,7 +267,7 @@
 			types: [] as string[]
 		};
 
-		// 발송처별 파일 처리
+		// 발송처별 파일 처리 (유니코드 안전한 매칭)
 		const senderGroups = {
 			ire: [
 				'이레',
@@ -147,29 +283,64 @@
 				'이레 pa',
 				'이레 PA'
 			],
-			ijung: ['이정', '이정pa', '이정 pa', '이정 PA', '이정PA']
+			ijung: ['이정', '이정pa', '이정 pa', '이정 PA', '이정PA'],
+			void: ['공백', '공백pa', '공백 pa', '공백 PA', '공백PA'],
+			top: ['가산탑pa', '가산탑 PA', '가산탑PA', '가산탑 pa']
 		};
 
 		// 이레/남원 그룹 처리
-		if (senderGroups.ire.includes(sender)) {
+		if (isSenderMatch(sender, senderGroups.ire)) {
 			allFiles.forEach((file) => {
-				const parts = file.split('_').filter(Boolean);
-				if (parts.length >= 3) result.types.push(parts[2]);
-			});
-		}
-		// 이정 그룹 처리
-		else if (senderGroups.ijung.includes(sender)) {
-			allFiles.forEach((file) => {
-				const parts = file.split('_').filter(Boolean);
+				if (!file || typeof file !== 'string') return;
+
+				// 파일명 정규화
+				const normalizedFile = normalizeString(file);
+				const parts = normalizedFile.split('_').filter((part) => part && part.trim());
+
 				if (parts.length >= 3) {
-					const combinedPart = (parts[0] + '_' + parts[1]).replace(/[0-9]/g, '');
-					const isRemake = ['re', '리메이크', '리메'].some((keyword) =>
-						file.toLowerCase().includes(keyword)
-					);
-					result.types.push(isRemake ? `${combinedPart}(re)` : combinedPart);
+					const typePart = normalizeString(parts[2]);
+					if (typePart) {
+						result.types.push(typePart);
+					}
 				}
 			});
 		}
+		// 이정 그룹 처리
+		else if (isSenderMatch(sender, senderGroups.ijung)) {
+			allFiles.forEach((file) => {
+				if (!file || typeof file !== 'string') return;
+
+				// 파일명 정규화
+				const normalizedFile = normalizeString(file);
+
+				// @ 기호로 구분하여 앞부분만 처리
+				let processFile = normalizedFile;
+				if (normalizedFile.includes('@')) {
+					processFile = normalizedFile.split('@')[1]; // @ 앞부분만 추출
+				}
+
+				const parts = processFile.split('_').filter((part) => part && part.trim());
+
+				if (parts.length >= 3) {
+					// 숫자 제거 후 조합
+					const combinedPart = (parts[0] + '_' + parts[1]).replace(/[0-9]/g, '');
+					const normalizedCombined = normalizeString(combinedPart);
+
+					// 리메이크 키워드 검사 (유니코드 안전)
+					const isRemake = ['re', '리메이크', '리메'].some((keyword) => {
+						const normalizedKeyword = normalizeString(keyword).toLowerCase();
+						return normalizedFile.toLowerCase().includes(normalizedKeyword);
+					});
+
+					if (normalizedCombined) {
+						result.types.push(isRemake ? `${normalizedCombined}(re)` : normalizedCombined);
+					}
+				}
+			});
+		}
+
+		// 중복 제거 및 정렬
+		result.types = [...new Set(result.types)].sort();
 
 		return result;
 	}
@@ -183,6 +354,10 @@
 		// URL 파라미터 업데이트
 		const newDate = $selectedYear.toString() + '-' + $selectedMonth.toString().padStart(2, '0');
 		const newCorpName = $selectedCorpName.toString();
+
+		// 쿠키에 저장
+		setCookie('selectedDate', newDate, 30);
+		setCookie('selectedCorpName', newCorpName, 30);
 
 		// 파라미터 업데이트
 		data.param.date = newDate;
@@ -202,11 +377,13 @@
 	// MonthDatePicker 이벤트 핸들러
 	function handleYearChange(event: CustomEvent) {
 		selectedYear.set(event.detail.year);
+		handleDateChange(event.detail.year, $selectedMonth);
 	}
 
 	function handleMonthSelect(event: CustomEvent) {
 		selectedYear.set(event.detail.year);
 		selectedMonth.set(event.detail.month);
+		handleDateChange(event.detail.year, event.detail.month);
 	}
 </script>
 
@@ -231,7 +408,7 @@
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'all' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
 												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && !isLoading && (selectedType = 'all')}
+											onclick={() => hasData && !isLoading && handleTabTypeChange('all')}
 										>
 											전체
 										</button>
@@ -241,7 +418,7 @@
 											class="tab-btn min-w-24 border-b-2 px-4 py-3 pt-2 text-sm font-semibold focus:outline-none
 												{selectedType === 'cap' ? 'border-violet-500 text-violet-600' : 'border-transparent text-gray-400'}
 												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && !isLoading && (selectedType = 'cap')}
+											onclick={() => hasData && !isLoading && handleTabTypeChange('cap')}
 										>
 											캡
 										</button>
@@ -253,7 +430,7 @@
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
 												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && !isLoading && (selectedType = 'partial')}
+											onclick={() => hasData && !isLoading && handleTabTypeChange('partial')}
 										>
 											파샬
 										</button>
@@ -265,7 +442,7 @@
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
 												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && !isLoading && (selectedType = 'custom')}
+											onclick={() => hasData && !isLoading && handleTabTypeChange('custom')}
 										>
 											커스텀
 										</button>
@@ -277,7 +454,7 @@
 												? 'border-violet-500 text-violet-600'
 												: 'border-transparent text-gray-400'}
 												{!hasData || isLoading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}"
-											onclick={() => hasData && !isLoading && (selectedType = 'allonfour')}
+											onclick={() => hasData && !isLoading && handleTabTypeChange('allonfour')}
 										>
 											올온포
 										</button>
@@ -297,9 +474,49 @@
 													class="h-12 w-80 rounded border border-gray-300 py-4 pl-8 pr-2 text-sm text-gray-600 placeholder-gray-400 focus:border-violet-500 focus:outline-none"
 													placeholder="회사 이름을 적어주세요."
 													bind:value={$selectedCorpName}
+													oninput={(e) => handleCorpNameChange(e.target.value)}
 												/>
 											</div>
 										</div>
+
+										<!-- 완료 상태 필터 -->
+										<div class="flex items-center gap-4">
+											<span class="text-sm font-medium text-gray-700 dark:text-gray-300">상태:</span
+											>
+											<div class="flex items-center">
+												<button
+													type="button"
+													class="rounded-l-md border-b border-l border-t px-4 py-2 text-sm font-medium transition-colors duration-200 {completionFilter ===
+													'all'
+														? 'bg-violet-600 text-white'
+														: 'bg-white text-black hover:bg-gray-100'}"
+													onclick={() => handleCompletionFilterChange('all')}
+												>
+													전체
+												</button>
+												<button
+													type="button"
+													class="border px-4 py-2 text-sm font-medium transition-colors duration-200 hover:bg-gray-100 {completionFilter ===
+													'completed'
+														? 'bg-violet-600 text-white'
+														: 'bg-white text-black hover:bg-gray-100'}"
+													onclick={() => handleCompletionFilterChange('completed')}
+												>
+													완료
+												</button>
+												<button
+													type="button"
+													class="rounded-r-md border-b border-r border-t px-4 py-2 text-sm font-medium transition-colors duration-200 {completionFilter ===
+													'incomplete'
+														? 'bg-violet-600 text-white'
+														: 'bg-white text-black hover:bg-gray-100'}"
+													onclick={() => handleCompletionFilterChange('incomplete')}
+												>
+													미완료
+												</button>
+											</div>
+										</div>
+
 										<div class="relative inline-flex space-x-2">
 											<!-- MonthDatePicker 컴포넌트 사용 -->
 											<div class="inline-block">
@@ -466,34 +683,40 @@
 													scope="col"
 													class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 												>
-													<span
-														class={item.normalFileNum > 0
-															? item.normalUnitNum === 0
-																? 'text-red-500'
-																: 'text-green-500'
-															: 'text-gray-500'}>정상</span
-													>
-													<i
-														class={item.normalFileNum > 0
-															? item.normalUnitNum === 0
-																? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
-																: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
-															: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
-													></i>
-													<span
-														class={item.remakeFileNum > 0
-															? item.remakeUnitNum === 0
-																? 'text-red-500'
-																: 'text-green-500'
-															: 'text-gray-500'}>리메이크</span
-													>
-													<i
-														class={item.remakeFileNum > 0
-															? item.remakeUnitNum === 0
-																? 'ri-checkbox-circle-line ml-auto mr-2 text-red-500'
-																: 'ri-checkbox-circle-line ml-auto mr-2 text-green-500'
-															: 'ri-checkbox-circle-line ml-auto mr-2 text-gray-500'}
-													></i>
+													<div class="flex flex-col gap-1">
+														<div class="flex items-center justify-between">
+															<span
+																class={item.normalFileNum > 0
+																	? item.normalUnitNum === 0
+																		? 'text-red-500'
+																		: 'text-green-500'
+																	: 'text-gray-500'}>정상</span
+															>
+															<i
+																class={item.normalFileNum > 0
+																	? item.normalUnitNum === 0
+																		? 'ri-close-circle-line text-red-500'
+																		: 'ri-checkbox-circle-line text-green-500'
+																	: 'ri-checkbox-circle-line text-gray-500'}
+															></i>
+														</div>
+														<div class="flex items-center justify-between">
+															<span
+																class={item.remakeFileNum > 0
+																	? item.remakeUnitNum === 0
+																		? 'text-red-500'
+																		: 'text-green-500'
+																	: 'text-gray-500'}>리메이크</span
+															>
+															<i
+																class={item.remakeFileNum > 0
+																	? item.remakeUnitNum === 0
+																		? 'ri-close-circle-line text-red-500'
+																		: 'ri-checkbox-circle-line text-green-500'
+																	: 'ri-checkbox-circle-line text-gray-500'}
+															></i>
+														</div>
+													</div>
 												</td>
 												<td class="whitespace-nowrap px-12 py-4 text-sm font-medium">
 													<div

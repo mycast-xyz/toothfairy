@@ -5,7 +5,7 @@
 	import { WindowService } from '../../../app/service/WindowService';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import { getApiEndpoint, getBackendUrl } from '../../../app/service/ConfigService';
-	import { authService } from '../../../app/service/AuthService';
+	import { authService } from '../../../app/service/auth/AuthService';
 	import { toastStore } from '../../../app/service/ToastService';
 
 	const { data } = $props<{ data: any }>();

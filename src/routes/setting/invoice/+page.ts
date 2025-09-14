@@ -19,10 +19,23 @@ export const load: PageLoad = async ({ url }) => {
 	const date = dateParam ? dateParam : currentDate;
 
 	await axios
-		.get(currentUrl + '/api/v0/center/invoice/list?date=' + date)
+		.get(currentUrl + '/api/v0/invoice/center/list?date=' + date)
 		.then((res) => {
 			if (res.data.resultCode === 200) {
-				data = res.data.item;
+				data.lab = res.data.item;
+			} else {
+				console.log('err: 서버 코드 에러');
+			}
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+
+	await axios
+		.get(currentUrl + '/api/v0/invoice/dental/list?date=' + date)
+		.then((res) => {
+			if (res.data.resultCode === 200) {
+				data.dental = res.data.item;
 			} else {
 				console.log('err: 서버 코드 에러');
 			}

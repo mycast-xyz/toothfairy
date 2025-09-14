@@ -4,7 +4,7 @@
 	import axios from 'axios';
 	import { toastStore } from '../../service/ToastService';
 	import { getApiEndpoint, getBackendUrl } from '../../service/ConfigService';
-	import { authService } from '../../service/AuthService';
+	import { authService } from '../../service/auth/AuthService';
 
 	// 토스트 메시지 표시 함수
 	const showToast = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {

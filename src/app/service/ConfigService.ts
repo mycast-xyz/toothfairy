@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import axios from 'axios';
 
 // 기본 타입 정의 (필수 설정들)
 export interface BaseConfig {
@@ -94,11 +95,11 @@ class ConfigService {
 				console.log('설정 파일 경로:', configPath);
 
 				try {
-					const response = await fetch(configPath);
+					const response = await axios.get(configPath);
 					console.log('설정 파일 응답 상태:', response.status);
 
-					if (response.ok) {
-						const loadedConfig = await response.json();
+					if (response.status === 200) {
+						const loadedConfig = response.data;
 						console.log('로드된 JSON 설정:', loadedConfig);
 
 						// 기본 설정과 병합
@@ -215,7 +216,8 @@ class ConfigService {
 					},
 					invoice: {
 						list: '/api/v0/invoice/list',
-						corp: '/api/v0/invoice/corp'
+						corp: '/api/v0/invoice/corp',
+						save: '/api/v0/invoice/save'
 					},
 					cam: {
 						data: {

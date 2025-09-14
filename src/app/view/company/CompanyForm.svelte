@@ -3,7 +3,7 @@
 	import DentalCompanyForm from './DentalCompanyForm.svelte';
 	import AddressSearch from './AddressSearch.svelte';
 	import { configService } from '../../service/ConfigService';
-	import { authService } from '../../service/AuthService';
+	import { authService } from '../../service/auth/AuthService';
 	import { toastStore } from '../../service/ToastService';
 	import { CompanyValidationService } from '../../service/validation/CompanyValidationService';
 

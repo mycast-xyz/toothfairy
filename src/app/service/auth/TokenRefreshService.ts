@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { authService } from '../AuthService';
+import { authService } from './AuthService';
 
 export class TokenRefreshService {
 	private refreshInterval: NodeJS.Timeout | null = null;

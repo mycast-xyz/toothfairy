@@ -1,5 +1,5 @@
 import { configService } from '../ConfigService';
-import { authService } from '../AuthService';
+import { authService } from '../auth/AuthService';
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios';
 
 // API 응답 타입 정의

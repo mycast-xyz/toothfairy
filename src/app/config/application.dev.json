@@ -40,7 +40,8 @@
 			},
 			"invoice": {
 				"list": "/api/v0/center/invoice/list",
-				"corp": "/api/v0/center/invoice/corp"
+				"corp": "/api/v0/center/invoice/corp",
+				"save": "/api/v0/center/invoice/save"
 			},
 			"cam": {
 				"data": {
@@ -85,6 +86,11 @@
 				"stop": "/api/v0/monitoring/stop",
 				"networkDrives": "/api/v0/monitoring/network-drives",
 				"networkStorageSummary": "/api/v0/monitoring/network-storage-summary"
+			},
+			"pdf": {
+				"save": "/api/v0/pdf/save",
+				"list": "/api/v0/pdf/list",
+				"download": "/api/v0/pdf/download"
 			}
 		}
 	},

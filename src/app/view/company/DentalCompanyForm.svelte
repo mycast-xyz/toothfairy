@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getApiEndpoint, getBackendUrl } from '../../service/ConfigService';
-	import { authService } from '../../service/AuthService';
+	import { authService } from '../../service/auth/AuthService';
 	import { toastStore } from '../../service/ToastService';
 
 	// props 정의

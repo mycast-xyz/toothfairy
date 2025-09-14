@@ -5,7 +5,7 @@
 	import CompanyForm from '../../../app/view/company/CompanyForm.svelte';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import { getApiEndpoint, getBackendUrl } from '../../../app/service/ConfigService';
-	import { authService } from '../../../app/service/AuthService';
+	import { authService } from '../../../app/service/auth/AuthService';
 	import { toastStore } from '../../../app/service/ToastService';
 
 	// 거래처 목록 조회

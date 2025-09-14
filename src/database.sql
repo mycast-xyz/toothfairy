@@ -14,3 +14,23 @@ CREATE TABLE IF NOT EXISTS "centerStlList" (
 	"updatedAt" TIMESTAMP NULL DEFAULT NULL,
 	PRIMARY KEY ("id"),
 );
+
+-- PDF 저장을 위한 테이블
+CREATE TABLE IF NOT EXISTS "savedPdfs" (
+	"id" SERIAL NOT NULL,
+	"fileName" VARCHAR(255) NOT NULL,
+	"filePath" VARCHAR(500) NOT NULL,
+	"fileSize" INTEGER NULL DEFAULT NULL,
+	"pdfType" VARCHAR(20) NOT NULL CHECK ("pdfType" IN ('dentistry', 'lab')),
+	"companyName" VARCHAR(200) NULL DEFAULT NULL,
+	"invoiceDate" DATE NULL DEFAULT NULL,
+	"invoiceData" JSONB NULL DEFAULT NULL, -- 청구서 데이터
+	"generatedBy" VARCHAR(100) NULL DEFAULT NULL, -- 생성한 사용자
+	"corpId" INTEGER NULL DEFAULT NULL, -- 거래처 ID (선택적)
+	"invoiceId" INTEGER NULL DEFAULT NULL, -- 인보이스 ID (선택적)
+	"isActive" BOOLEAN DEFAULT TRUE,
+	"deletedAt" TIMESTAMP NULL DEFAULT NULL,
+	"createdAt" TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+	"updatedAt" TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY ("id"),
+);

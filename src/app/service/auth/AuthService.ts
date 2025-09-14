@@ -1,4 +1,4 @@
-import { configService } from './ConfigService';
+import { configService } from '../ConfigService';
 import axios from 'axios';
 
 class AuthService {
@@ -14,19 +14,14 @@ class AuthService {
 			const tokenEndpoint = configService.getApiEndpoint('auth', 'token') || '/api/auth/token';
 
 			// API를 통해 토큰 가져오기
-			const response = await fetch(tokenEndpoint, {
-				method: 'GET',
-				credentials: 'include', // 쿠키 포함
+			const response = await axios.get(tokenEndpoint, {
+				withCredentials: true, // 쿠키 포함
 				headers: {
 					'Content-Type': 'application/json'
 				}
 			});
 
-			if (!response.ok) {
-				return null;
-			}
-
-			const data = await response.json();
+			const data = response.data;
 
 			if (data.success && data.token) {
 				return data.token;

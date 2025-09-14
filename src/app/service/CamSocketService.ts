@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { configService, getSocketUrl } from './ConfigService';
 import { fetchCamPrintListFromApi } from './CamDataService';
-import { authService } from './AuthService';
+import { authService } from './auth/AuthService';
 
 // Socket.IO 클라이언트 타입 정의
 interface SocketIOClient {

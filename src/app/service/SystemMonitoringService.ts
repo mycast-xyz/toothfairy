@@ -1,6 +1,7 @@
 import { writable, type Writable } from 'svelte/store';
 import { configService } from './ConfigService';
-import { authService } from './AuthService';
+import { authService } from './auth/AuthService';
+import axios from 'axios';
 
 // 시스템 정보 타입 정의
 export interface SystemInfo {
@@ -338,19 +339,14 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}api/v0/monitoring/system`, {
-				method: 'GET',
+			const response = await axios.get(`${backendUrl}api/v0/monitoring/system`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
 
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-
-			const result = await response.json();
+			const result = response.data;
 
 			if (result.resultCode === 200 && result.data) {
 				systemInfo.set(result.data);
@@ -371,19 +367,14 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}api/v0/monitoring/network-drives`, {
-				method: 'GET',
+			const response = await axios.get(`${backendUrl}api/v0/monitoring/network-drives`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
 
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-
-			const result = await response.json();
+			const result = response.data;
 
 			if (result.resultCode === 200 && result.data) {
 				// 네트워크 드라이브 정보를 시스템 정보에 업데이트
@@ -410,19 +401,14 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}api/v0/monitoring/network-storage-summary`, {
-				method: 'GET',
+			const response = await axios.get(`${backendUrl}api/v0/monitoring/network-storage-summary`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
 
-			if (!response.ok) {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-
-			const result = await response.json();
+			const result = response.data;
 
 			if (result.resultCode === 200 && result.data) {
 				return result.data;
@@ -444,15 +430,14 @@ class SystemMonitoringService {
 			const backendUrl = this.getMonitoringBackendUrl();
 			const token = await authService.getJwtToken();
 
-			const response = await fetch(`${backendUrl}api/v0/monitoring/health`, {
-				method: 'GET',
+			const response = await axios.get(`${backendUrl}api/v0/monitoring/health`, {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json'
 				}
 			});
 
-			return response.ok;
+			return response.status === 200;
 		} catch (error) {
 			console.error('❌ 헬스체크 실패:', error);
 			return false;

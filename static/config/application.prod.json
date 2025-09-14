@@ -50,6 +50,13 @@
 						"multi": "/api/v0/cam/data/download/multi"
 					},
 					"complete": "/api/v0/cam/data/complete"
+				},
+				"progress": "/api/v0/cam/data/progress"
+			},
+			"data": {
+				"create": {
+					"ok": "/api/v0/center/data/create/ok",
+					"re": "/api/v0/center/data/create/re"
 				}
 			},
 			"setting": {
@@ -57,6 +64,27 @@
 				"user": "/api/v0/setting/user",
 				"userrole": "/api/v0/setting/roles",
 				"site": "/api/v0/setting/site"
+			},
+			"price": {
+				"list": "/api/v0/price/list",
+				"upload": "/api/v0/price/upload",
+				"search": "/api/v0/price/search",
+				"type": "/api/v0/price/list/type",
+				"update": "/api/v0/price/list/:id"
+			},
+			"monitoring": {
+				"system": "/api/v0/monitoring/system",
+				"summary": "/api/v0/monitoring/summary",
+				"cpu": "/api/v0/monitoring/cpu",
+				"memory": "/api/v0/monitoring/memory",
+				"disk": "/api/v0/monitoring/disk",
+				"network": "/api/v0/monitoring/network",
+				"process": "/api/v0/monitoring/process",
+				"health": "/api/v0/monitoring/health",
+				"start": "/api/v0/monitoring/start",
+				"stop": "/api/v0/monitoring/stop",
+				"networkDrives": "/api/v0/monitoring/network-drives",
+				"networkStorageSummary": "/api/v0/monitoring/network-storage-summary"
 			}
 		}
 	},
@@ -76,8 +104,8 @@
 	"app": {
 		"name": "ToothFairy",
 		"version": "1.0.0",
-		"environment": "development",
-		"debug": true,
+		"environment": "production",
+		"debug": false,
 		"features": {
 			"socket": true,
 			"notifications": true,
@@ -88,39 +116,40 @@
 		"jwt": {
 			"secret": "your-jwt-secret-key-prod",
 			"expiresIn": "1h",
-			"refreshExpiresIn": "7d",
-			"autoRefresh": {
-				"enabled": true,
-				"threshold": 600000,
-				"backgroundCheck": true,
-				"activityBased": true,
-				"activityTimeout": 300000
-			}
+			"refreshExpiresIn": "7d"
 		},
 		"cors": {
-			"origin": ["https://yourdomain.com"],
+			"origin": ["http://localhost:5173", "http://localhost:3000"],
 			"credentials": true
 		},
 		"cookies": {
 			"accessToken": {
 				"name": "access_token",
 				"httpOnly": true,
-				"secure": false,
+				"secure": true,
 				"sameSite": "lax",
 				"maxAge": 3600000
 			},
 			"refreshToken": {
 				"name": "refresh_token",
 				"httpOnly": true,
-				"secure": false,
+				"secure": true,
 				"sameSite": "lax",
 				"maxAge": 604800000
 			}
 		}
 	},
+	"database": {
+		"type": "sqlite",
+		"host": "localhost",
+		"port": 3306,
+		"name": "toothfairy_prod",
+		"username": "prod_user",
+		"password": "prod_password"
+	},
 	"logging": {
-		"level": "debug",
-		"file": "logs/app-dev.log",
-		"console": true
+		"level": "info",
+		"file": "logs/app-prod.log",
+		"console": false
 	}
 }

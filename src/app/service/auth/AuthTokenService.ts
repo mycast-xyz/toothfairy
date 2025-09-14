@@ -1,13 +1,13 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
-import { authService } from '../AuthService';
+import { authService } from './AuthService';
 
 export class AuthTokenService {
 	private static readonly TOKEN_KEY = 'auth_token';
 	private static readonly REFRESH_TOKEN_KEY = 'refresh_token';
 	private _token = writable<string | null>(null);
 	private _isAuthenticated = writable<boolean>(false);
-	private refreshTimer: NodeJS.Timeout | null = null;
+	private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 	private readonly REFRESH_THRESHOLD = 5 * 60 * 1000; // 5분 전에 갱신
 
 	constructor() {
