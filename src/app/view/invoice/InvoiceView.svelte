@@ -3,6 +3,7 @@
 	import InvoicePdfRenderer from './InvoicePdfRenderer.svelte';
 	import { InvoicePageType } from '../../model/invoice/InvoicePageType';
 	import { SUPPLIER_INFO } from '../../service/invoice/InvoiceCommonService';
+	import { toastStore } from '../../service/ToastService';
 	import {
 		initializeInvoiceStore,
 		updateInvoiceMoney,
@@ -38,9 +39,15 @@
 	// ===== EVENT HANDLERS =====
 	function handlePdfRenderComplete(success: boolean, error?: string) {
 		closePdfModal();
-		if (!success && error) {
-			alert(`PDF 생성 오류: ${error}`);
+		if (success) {
+			toastStore.success('PDF가 성공적으로 생성되었습니다.');
+		} else {
+			toastStore.error(`PDF 생성 오류: ${error || '알 수 없는 오류가 발생했습니다.'}`);
 		}
+	}
+
+	function handlePdfRenderStart() {
+		toastStore.info('PDF 생성 중입니다. 잠시만 기다려주세요...');
 	}
 
 	function handleInvoiceMoneyChange(event: Event) {
@@ -99,7 +106,10 @@
 				<div class="float-right ml-auto inline-block w-auto items-center">
 					<button
 						type="button"
-						onclick={openPdfModal}
+						onclick={() => {
+							handlePdfRenderStart();
+							openPdfModal();
+						}}
 						class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
 					>
 						PDF 다운로드 (Playwright)
@@ -378,14 +388,32 @@
 	</article>
 </main>
 
-<!-- PDF 렌더링 컴포넌트 -->
+<!-- PDF 렌더링 컴포넌트 - 고정 위치에 배치 -->
 {#if $showPdfRenderer}
-	<InvoicePdfRenderer
-		{pageType}
-		{data}
-		fileName={invoiceService?.getPdfFileName() || ''}
-		onRenderComplete={handlePdfRenderComplete}
-	/>
+	<div class="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
+		<div
+			class="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
+		>
+			<div class="mb-4 flex items-center justify-between">
+				<h3 class="text-lg font-semibold text-gray-900">PDF 생성 중...</h3>
+				<button
+					type="button"
+					onclick={closePdfModal}
+					class="rounded-lg bg-gray-200 px-3 py-1 text-sm text-gray-700 hover:bg-gray-300"
+				>
+					취소
+				</button>
+			</div>
+			<div class="max-h-[70vh] overflow-auto">
+				<InvoicePdfRenderer
+					{pageType}
+					{data}
+					fileName={invoiceService?.getPdfFileName() || ''}
+					onRenderComplete={handlePdfRenderComplete}
+				/>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <style>
