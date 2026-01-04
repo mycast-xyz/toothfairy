@@ -194,7 +194,7 @@ class ConfigService {
 					auth: {
 						login: '/api/v0/account/login',
 						logout: '/api/v0/account/logout',
-						refresh: '/api/v0/account/refresh'
+						refresh: '/api/v0/auth/refresh'
 					},
 					company: {
 						list: '/api/v0/corp/list',

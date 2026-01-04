@@ -23,13 +23,13 @@ export interface MenuPermission {
 export const MENU_PERMISSIONS: MenuPermission[] = [
 	// 대시보드 - 모든 사용자 접근 가능
 	{
-		path: 'main',
+		path: '/main',
 		label: '대시보드',
 		icon: 'ri-home-6-line',
 		roles: ['all_admin', 'all_lab', 'all_center', 'all_cam', 'user']
 	},
 	{
-		path: 'main',
+		path: '/calender',
 		label: '캘린더',
 		icon: 'ri-calendar-line',
 		roles: ['all_admin', 'all_lab', 'all_center', 'all_cam', 'user']

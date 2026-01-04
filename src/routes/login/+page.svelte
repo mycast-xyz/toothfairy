@@ -39,7 +39,7 @@
 	$effect(() => {
 		const interval = setInterval(() => {
 			currentImageIndex = (currentImageIndex + 1) % images.length;
-		}, 5000);
+		}, 10000);
 
 		return () => clearInterval(interval);
 	});
@@ -48,15 +48,14 @@
 <div class="h-screen w-screen overflow-hidden overflow-x-hidden bg-gray-100 dark:bg-gray-800">
 	<div class="flex h-full w-full items-center justify-center">
 		<!-- Left side - Image -->
-		<div class="hidden h-full w-2/3 bg-gray-50 md:flex">
-			<div class="relative flex h-full items-center justify-center overflow-hidden">
+		<div class="h-full w-2/3 bg-gray-50 md:flex">
+			<div class="grid h-full w-full overflow-hidden">
 				{#key currentImageIndex}
 					<img
 						src={images[currentImageIndex]}
 						alt="Login illustration"
-						class="absolute inset-0 h-full w-full object-cover object-center"
-						in:fly={{ x: 200, duration: 1000, opacity: 1 }}
-						out:fly={{ x: -200, duration: 1000, opacity: 1 }}
+						class="col-start-1 row-start-1 h-full w-full object-cover object-center"
+						transition:fade={{ duration: 1000 }}
 					/>
 				{/key}
 			</div>
