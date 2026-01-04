@@ -139,11 +139,7 @@ export class CompanyValidationService {
 					errors.push(`출력물 종류 ${index + 1}의 정상 가격이 올바르지 않습니다.`);
 				}
 
-				if (
-					!printType.remakePrice ||
-					isNaN(Number(printType.remakePrice)) ||
-					Number(printType.remakePrice) <= 0
-				) {
+				if (Number(printType.remakePrice) < 0) {
 					errors.push(`출력물 종류 ${index + 1}의 리메이크 가격이 올바르지 않습니다.`);
 				}
 

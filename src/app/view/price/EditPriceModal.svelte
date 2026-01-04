@@ -39,7 +39,9 @@
 		prkey: '',
 		type: '',
 		technicianname: '',
-		price: ''
+		price: '',
+		fixed: false,
+		isScan: false
 	});
 
 	// 모달이 열릴 때 편집할 항목 설정
@@ -51,6 +53,8 @@
 		formData.type = item.type || '';
 		formData.technicianname = item.technicianname || '';
 		formData.price = item.price?.toString() || '';
+		formData.fixed = item.fixed || false;
+		formData.isScan = item.isScan || false;
 	}
 
 	// 편집 취소
@@ -157,6 +161,13 @@
 		}
 	}
 
+	// prkey가 2로 시작하면 스캔여부 자동 체크 및 고정
+	$effect(() => {
+		if (formData.prkey.startsWith('2')) {
+			formData.isScan = true;
+		}
+	});
+
 	// 취소
 	function cancelSubmit() {
 		WindowService.closeModal();
@@ -192,23 +203,31 @@
 				id="prkey"
 				type="text"
 				bind:value={formData.prkey}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
+				class="w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
 				placeholder="예: 1403, 1404, 1405..."
+				disabled
 			/>
 		</div>
 
 		<!-- 대분류 -->
 		<div>
-			<label for="type" class="mb-2 block text-sm font-medium text-gray-700">
-				대분류 <span class="text-red-500">*</span>
-			</label>
-			<input
+			<label for="type" class="mb-2 block text-sm font-medium text-gray-700">대분류 *</label>
+			<select
 				id="type"
-				type="text"
 				bind:value={formData.type}
-				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
-				placeholder="예: 캡, 파샬, 커스텀, 올온포, partialDenture..."
-			/>
+				class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none"
+				required
+			>
+				<option value="">선택하세요</option>
+				<option value="gold">골드</option>
+				<option value="crown">크라운</option>
+				<option value="por">POR</option>
+				<option value="zir">지르코니아</option>
+				<option value="denture">덴쳐</option>
+				<option value="allonx">올온포</option>
+				<option value="braces">교정</option>
+				<option value="etc">기타</option>
+			</select>
 		</div>
 
 		<!-- 기공명칭 -->
@@ -298,6 +317,32 @@
 						-500
 					</button>
 				</div>
+
+				<div class="flex flex-col space-y-4">
+					<label class="relative inline-flex cursor-pointer items-center justify-between pt-4">
+						<span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">고정금액</span>
+						<div class="relative">
+							<input type="checkbox" bind:checked={formData.fixed} class="peer sr-only" />
+							<div
+								class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-violet-800"
+							></div>
+						</div>
+					</label>
+					<label class="relative inline-flex cursor-pointer items-center justify-between">
+						<span class="mr-3 text-sm font-medium text-gray-900 dark:text-gray-300">스캔여부</span>
+						<div class="relative">
+							<input
+								type="checkbox"
+								bind:checked={formData.isScan}
+								class="peer sr-only"
+								disabled={formData.prkey.startsWith('2')}
+							/>
+							<div
+								class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 dark:border-gray-600 dark:bg-gray-700 dark:peer-focus:ring-violet-800"
+							></div>
+						</div>
+					</label>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -311,12 +356,6 @@
 			onclick={cancelSubmit}
 		>
 			취소
-		</button>
-		<button
-			class="rounded-md bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
-			onclick={cancelEdit}
-		>
-			편집 취소
 		</button>
 		<button
 			class="rounded-md bg-violet-500 px-4 py-2 text-white hover:bg-violet-600"

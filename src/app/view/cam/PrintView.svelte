@@ -4,7 +4,7 @@
 	import DropdownFilter from '../components/DropdownFilter.svelte';
 	import CustomDatePicker from '../components/datepicker/CustomDatePicker.svelte';
 	import PageHeaderBar from '../components/PageHeaderBar.svelte';
-	import { camPrintViewService } from '../../service/CamPrintView';
+	import { camPrintViewService } from '../../service/cam/CamPrintView';
 	import { toastStore } from '../../service/ToastService';
 	import { WindowService } from '../../service/WindowService';
 	import {

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { WindowService } from '../../service/WindowService';
 	import { toastStore } from '../../service/ToastService';
-	import { camPrintViewService } from '../../service/CamPrintView';
+	import { camPrintViewService } from '../../service/cam/CamPrintView';
 
 	// 상태 변수
 	let password = '';

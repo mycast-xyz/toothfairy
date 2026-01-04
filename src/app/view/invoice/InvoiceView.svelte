@@ -1,6 +1,7 @@
 <script lang="ts">
 	// ===== IMPORTS =====
 	import InvoicePdfRenderer from './InvoicePdfRenderer.svelte';
+	import PageHeaderBar from '../../view/components/PageHeaderBar.svelte';
 	import { InvoicePageType } from '../../model/invoice/InvoicePageType';
 	import { SUPPLIER_INFO } from '../../service/invoice/InvoiceCommonService';
 	import { toastStore } from '../../service/ToastService';
@@ -42,7 +43,24 @@
 		if (success) {
 			toastStore.success('PDF가 성공적으로 생성되었습니다.');
 		} else {
-			toastStore.error(`PDF 생성 오류: ${error || '알 수 없는 오류가 발생했습니다.'}`);
+			// 에러 메시지를 더 사용자 친화적으로 표시
+			let errorMessage = '알 수 없는 오류가 발생했습니다.';
+
+			if (error) {
+				if (error.includes('PDF 생성 서버에 연결할 수 없습니다')) {
+					errorMessage = 'PDF 생성 서버에 연결할 수 없습니다. 서버 상태를 확인해주세요.';
+				} else if (error.includes('PDF 생성 시간이 초과되었습니다')) {
+					errorMessage = 'PDF 생성 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
+				} else if (error.includes('PDF 생성에 실패했습니다')) {
+					errorMessage = 'PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.';
+				} else if (error.includes('네트워크')) {
+					errorMessage = '네트워크 연결을 확인해주세요.';
+				} else {
+					errorMessage = `PDF 생성 오류: ${error}`;
+				}
+			}
+
+			toastStore.error(errorMessage);
 		}
 	}
 
@@ -96,45 +114,48 @@
 
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
 	<article class="w-full pl-3 pr-5 pt-3">
+		<PageHeaderBar
+			title={currentConfig.title}
+			description="청구서 저장 및 pdf 다운로드 페이지입니다."
+		>
+			<div class="flex flex-wrap items-center gap-2">
+				<button
+					type="button"
+					onclick={() => {
+						handlePdfRenderStart();
+						openPdfModal();
+					}}
+					class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
+				>
+					PDF 다운로드
+				</button>
+			</div>
+		</PageHeaderBar>
 		<nav
 			class="request-list content-nav-box block h-auto w-full rounded-lg border border-gray-200 bg-white px-4 py-3 shadow"
 		>
-			<div class="re-list-title flex w-full flex-row">
-				<div class="box-title inline-block items-center">
-					<h3 class="py-1 py-px text-3xl font-extrabold text-violet-700">{currentConfig.title}</h3>
-				</div>
-				<div class="float-right ml-auto inline-block w-auto items-center">
-					<button
-						type="button"
-						onclick={() => {
-							handlePdfRenderStart();
-							openPdfModal();
-						}}
-						class="mb-2 rounded-lg bg-violet-500 px-5 py-3 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300 dark:bg-violet-600 dark:hover:bg-violet-700 dark:focus:ring-violet-900"
-					>
-						PDF 다운로드 (Playwright)
-					</button>
-				</div>
-			</div>
-			<div class="nav-search-box mt-4 border-t border-gray-100 pt-4">
-				<div class="relative inline-flex space-x-2">
-					<label for="invoiceMoney" class="text-sm font-medium text-gray-700">선결제 남은금액</label
+			<div class="nav-search-box flex flex-wrap items-center gap-4">
+				<div class="flex items-center space-x-2">
+					<label for="invoiceMoney" class="whitespace-nowrap text-sm font-medium text-gray-700"
+						>선결제 남은금액</label
 					>
 					<input
 						id="invoiceMoney"
 						type="text"
-						class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+						class="h-10 w-32 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
 						placeholder="선결제 남은금액"
 						value={$invoiceMoney}
 						oninput={handleInvoiceMoneyChange}
 					/>
 				</div>
-				<div class="relative inline-flex space-x-2">
-					<label for="deliveryInvoice" class="text-sm font-medium text-gray-700">배송비</label>
+				<div class="flex items-center space-x-2">
+					<label for="deliveryInvoice" class="whitespace-nowrap text-sm font-medium text-gray-700"
+						>배송비</label
+					>
 					<input
 						id="deliveryInvoice"
 						type="text"
-						class="h-10 w-20 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
+						class="h-10 w-32 rounded-lg border border-gray-300 px-4 py-1 text-sm focus:border-blue-500 focus:outline-none"
 						placeholder="배송비"
 						value={$deliveryInvoice}
 						oninput={handleDeliveryInvoiceChange}
@@ -395,7 +416,10 @@
 			class="relative max-h-[90vh] w-full max-w-4xl overflow-auto rounded-lg bg-white p-6 shadow-xl"
 		>
 			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-lg font-semibold text-gray-900">PDF 생성 중...</h3>
+				<div>
+					<h3 class="text-lg font-semibold text-gray-900">PDF 생성 중...</h3>
+					<p class="mt-1 text-sm text-gray-600">잠시만 기다려주세요. PDF가 생성되고 있습니다.</p>
+				</div>
 				<button
 					type="button"
 					onclick={closePdfModal}
@@ -404,6 +428,20 @@
 					취소
 				</button>
 			</div>
+
+			<!-- 진행 상태 표시 -->
+			<div class="mb-4">
+				<div class="flex items-center space-x-2">
+					<div class="h-4 w-4 animate-spin rounded-full border-b-2 border-violet-500"></div>
+					<span class="text-sm text-gray-600">PDF 생성 중...</span>
+				</div>
+				<div class="mt-2 text-xs text-gray-500">
+					• HTML 생성 완료<br />
+					• PDF 렌더링 서버로 전송 중...<br />
+					• PDF 파일 생성 중...
+				</div>
+			</div>
+
 			<div class="max-h-[70vh] overflow-auto">
 				<InvoicePdfRenderer
 					{pageType}

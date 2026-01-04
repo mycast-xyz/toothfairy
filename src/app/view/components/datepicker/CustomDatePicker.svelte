@@ -758,7 +758,7 @@
 			readonly
 			value={displayText}
 			on:click={toggleDatePicker}
-			class="w-full cursor-pointer rounded-md border border-gray-300 py-2 pl-10 pr-3 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
+			class="flex h-12 w-full cursor-pointer items-center rounded-md border border-gray-300 pl-10 pr-3 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-violet-500"
 		/>
 	</div>
 

@@ -73,8 +73,8 @@
 				<li class="flex items-center pl-2" class:text-violet-500={currentStep == 3}>
 					<span
 						class="me-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs"
-						class:border-gray-500={currentStep != 2}
-						class:border-violet-600={currentStep == 2}
+						class:border-gray-500={currentStep != 3}
+						class:border-violet-600={currentStep == 3}
 					>
 						3
 					</span>

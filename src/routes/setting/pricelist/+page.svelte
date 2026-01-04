@@ -15,12 +15,25 @@
 		toastStore[type](message);
 	};
 
-	let selectedCorpName = $state('');
 	let isLoading = $state(false);
 
 	// 가격 목록 데이터 구조 (백엔드 API 응답에 맞춤)
 	let priceList = $state<any[]>([]);
 	let totalCount = $state(0);
+
+	// 검색어 상태
+	let searchTerm = $state('');
+
+	// 페이지네이션 상태
+	let currentPage = $state(1);
+	let itemsPerPage = $state(10);
+
+	// 검색어 또는 페이지 당 항목 수 변경 시 페이지 초기화
+	$effect(() => {
+		searchTerm;
+		itemsPerPage;
+		currentPage = 1;
+	});
 
 	// 전체 가격목록 조회
 	async function fetchPriceList() {
@@ -85,28 +98,43 @@
 		});
 	});
 
-	// 검색 필터링
+	// 검색 및 보기 모드에 따른 필터링된 목록
 	let filteredPriceList = $derived.by(() => {
 		let filtered = priceList;
 
-		if (selectedCorpName) {
+		// 검색어 필터링
+		if (searchTerm) {
 			filtered = filtered.filter(
 				(item) =>
-					item.koName?.toLowerCase().includes(selectedCorpName.toLowerCase()) ||
-					item.enName?.toLowerCase().includes(selectedCorpName.toLowerCase()) ||
-					item.type?.toLowerCase().includes(selectedCorpName.toLowerCase())
+					item.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+					item.technicianname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+					item.prkey?.toLowerCase().includes(searchTerm.toLowerCase())
 			);
 		}
 
 		return filtered;
 	});
 
-	function handleSearchClick() {
-		const params = new URLSearchParams();
-		params.append('corpName', selectedCorpName);
+	// 페이지네이션 파생 상태
+	let totalPages = $derived(Math.ceil(filteredPriceList.length / itemsPerPage));
+	let paginatedList = $derived(
+		filteredPriceList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+	);
+	let startRange = $derived((currentPage - 1) * itemsPerPage + 1);
+	let endRange = $derived(Math.min(currentPage * itemsPerPage, filteredPriceList.length));
+	let pages = $derived(Array.from({ length: totalPages }, (_, i) => i + 1));
 
-		// 실제 검색 로직 구현
-		console.log('검색 파라미터:', params.toString());
+	// 페이지 이동 함수
+	function nextPage() {
+		if (currentPage < totalPages) currentPage++;
+	}
+
+	function prevPage() {
+		if (currentPage > 1) currentPage--;
+	}
+
+	function goToPage(page: number) {
+		currentPage = page;
 	}
 
 	// 모달 열기 함수들
@@ -134,33 +162,7 @@
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
 	<article class="w-full">
 		<PageHeaderBar title="가격 목록 관리" description="거래처별 가격 정보를 관리하는 페이지입니다.">
-			<div class="flex flex-wrap items-center gap-2">
-				<button
-					type="button"
-					onclick={fetchPriceList}
-					disabled={isLoading}
-					class="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-				>
-					<i class="ri-refresh-line pr-1 text-base" class:animate-spin={isLoading}></i>
-					{isLoading ? '로딩 중...' : '새로고침'}
-				</button>
-				<button
-					type="button"
-					onclick={openNewPriceModal}
-					class="rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300"
-				>
-					<i class="ri-add-line pr-1 text-base"></i>
-					새 가격 등록
-				</button>
-				<button
-					type="button"
-					onclick={openBulkAddModal}
-					class="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300"
-				>
-					<i class="ri-list-check-2 pr-1 text-base"></i>
-					전체 추가
-				</button>
-			</div>
+			<!-- 헤더 버튼 영역 제거됨 (아래로 이동) -->
 		</PageHeaderBar>
 
 		<article class="print-list">
@@ -170,32 +172,56 @@
 						<div class="border border-gray-200 shadow-lg dark:border-gray-700 md:rounded-lg">
 							<!-- 상단 검색 및 필터 바 -->
 							<div class="user-tab-bar w-full rounded-t-lg border-b border-gray-200 bg-white">
-								<div class="flex flex-wrap items-center justify-between">
-									<!-- 검색 및 필터 -->
-									<div
-										class="flex w-full items-center gap-4 border-t border-gray-200 bg-gray-100 px-4 py-4"
-									>
-										<!-- 회사명 검색 -->
-										<div class="flex-1">
+								<div class="flex flex-wrap items-center justify-between p-4">
+									<!-- 왼쪽: 검색 영역 -->
+									<div class="flex items-center space-x-3">
+										<label class="w-32 text-sm font-medium text-gray-700">항목 검색</label>
+										<div class="flex items-center space-x-3">
 											<input
 												type="text"
-												bind:value={selectedCorpName}
-												placeholder="제품명, 영어이름, 대분류로 검색..."
-												class="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
+												bind:value={searchTerm}
+												placeholder="치료 종류, 기공명칭, 고유번호로 검색..."
+												class="w-64 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
 											/>
 										</div>
+									</div>
 
-										<!-- 검색 버튼 -->
-										<div class="inline-block">
-											<button
-												type="button"
-												onclick={handleSearchClick}
-												class="rounded-lg bg-violet-500 px-5 py-2 text-sm font-medium text-white hover:bg-violet-800 focus:outline-none focus:ring-4 focus:ring-violet-300"
-											>
-												<i class="ri-search-line mr-2"></i>
-												검색
-											</button>
-										</div>
+									<!-- 오른쪽: 버튼 영역 -->
+									<div class="flex items-center space-x-2">
+										<select
+											bind:value={itemsPerPage}
+											class="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-200"
+										>
+											<option value={10}>10개씩 보기</option>
+											<option value={20}>20개씩 보기</option>
+											<option value={50}>50개씩 보기</option>
+											<option value={100}>100개씩 보기</option>
+										</select>
+										<button
+											type="button"
+											onclick={fetchPriceList}
+											disabled={isLoading}
+											class="rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											<i class="ri-refresh-line pr-1 text-base" class:animate-spin={isLoading}></i>
+											{isLoading ? '로딩 중...' : '새로고침'}
+										</button>
+										<button
+											type="button"
+											onclick={openNewPriceModal}
+											class="rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300"
+										>
+											<i class="ri-add-line pr-1 text-base"></i>
+											새 가격 등록
+										</button>
+										<button
+											type="button"
+											onclick={openBulkAddModal}
+											class="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-300"
+										>
+											<i class="ri-list-check-2 pr-1 text-base"></i>
+											전체 추가
+										</button>
 									</div>
 								</div>
 
@@ -282,7 +308,7 @@
 												</td>
 											</tr>
 										{:else}
-											{#each filteredPriceList as item}
+											{#each paginatedList as item}
 												<tr class="hover:bg-gray-50">
 													<td class="whitespace-nowrap px-4 py-4 text-sm font-medium text-gray-900">
 														{item.id}
@@ -338,6 +364,58 @@
 										{/if}
 									</tbody>
 								</table>
+								<!-- 페이지네이션 푸터 -->
+								{#if filteredPriceList.length > 0}
+									<div
+										class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
+									>
+										<div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+											<div>
+												<p class="text-sm text-gray-700">
+													총 <span class="font-medium">{filteredPriceList.length}</span>개 중
+													<span class="font-medium">{startRange}</span>
+													-
+													<span class="font-medium">{endRange}</span>
+													표시
+												</p>
+											</div>
+											<div>
+												<nav
+													class="isolate inline-flex -space-x-px rounded-md shadow-sm"
+													aria-label="Pagination"
+												>
+													<button
+														onclick={prevPage}
+														disabled={currentPage === 1}
+														class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+													>
+														<span class="sr-only">이전</span>
+														<i class="ri-arrow-left-s-line text-lg"></i>
+													</button>
+													{#each pages as page}
+														<button
+															onclick={() => goToPage(page)}
+															class="relative inline-flex items-center px-4 py-2 text-sm font-semibold {currentPage ===
+															page
+																? 'bg-violet-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600'
+																: 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'}"
+														>
+															{page}
+														</button>
+													{/each}
+													<button
+														onclick={nextPage}
+														disabled={currentPage === totalPages}
+														class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+													>
+														<span class="sr-only">다음</span>
+														<i class="ri-arrow-right-s-line text-lg"></i>
+													</button>
+												</nav>
+											</div>
+										</div>
+									</div>
+								{/if}
 							</div>
 						</div>
 					</div>

@@ -120,6 +120,10 @@ export function updateInvoiceMoney(value: number) {
 
 export function updateDeliveryInvoice(value: number) {
 	deliveryInvoice.set(value);
+	// corpInfo의 deliveryInvoice도 함께 업데이트
+	if (invoiceService) {
+		invoiceService.getCorpInfo().deliveryInvoice = value;
+	}
 }
 
 export function openPdfModal() {
@@ -277,7 +281,7 @@ export function preparePdfSaveData(
 		fileName,
 		filePath,
 		fileSize,
-		pdfType: pageType === InvoicePageType.CAP ? 'dentistry' : 'lab',
+		pdfType: pageType === InvoicePageType.DENTISTRY ? 'dentistry' : 'lab',
 		companyName,
 		invoiceDate,
 		invoiceData: currentData,

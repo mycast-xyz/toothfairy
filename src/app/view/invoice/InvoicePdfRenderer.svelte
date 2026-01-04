@@ -82,6 +82,7 @@
 			'<link rel="preconnect" href="https://fonts.googleapis.com">' +
 			'<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
 			'<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">' +
+			//tailwindCSS +
 			scriptTag +
 			'</head>'
 		);
@@ -244,56 +245,87 @@
 		}
 	}
 
-	// 서버로 PDF 렌더링 요청 전송
+	// 서버로 PDF 렌더링 요청 전송 (재시도 로직 포함)
 	async function sendPdfRenderRequest(): Promise<void> {
-		try {
-			const htmlContent = await generateHtmlForPdf();
+		const maxRetries = 3;
+		const retryDelay = 3000; // 3초
+		let lastError;
 
-			const requestData: PdfRenderRequest = {
-				pageType,
-				data,
-				options: {
-					fileName:
-						fileName || `${data.param.date}-${data.info.companyname}-${data.param.item}.pdf`,
-					format: 'A4',
-					orientation: 'portrait',
-					scale: 1.0
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				console.log(`PDF 렌더링 요청 시도 ${attempt}/${maxRetries}`);
+
+				// HTML 생성 과정 로깅
+				console.log('HTML 생성 시작...');
+				const htmlContent = await generateHtmlForPdf();
+				console.log('HTML 생성 완료, 크기:', htmlContent.length, 'bytes');
+
+				const requestData: PdfRenderRequest = {
+					pageType,
+					data,
+					options: {
+						fileName:
+							fileName || `${data.param.date}-${data.info.companyname}-${data.param.item}.pdf`,
+						format: 'A4',
+						orientation: 'portrait',
+						scale: 1.0
+					}
+				};
+
+				const response = await fetch('/api/pdf/render', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: JSON.stringify({
+						...requestData,
+						htmlContent
+					})
+				});
+
+				console.log(
+					`PDF 렌더링 요청 응답 (시도 ${attempt}):`,
+					response.status,
+					response.statusText
+				);
+
+				if (!response.ok) {
+					const errorText = await response.text();
+					throw new Error(
+						`PDF 렌더링 요청 실패: ${response.status} ${response.statusText} - ${errorText}`
+					);
 				}
-			};
 
-			const response = await fetch('/api/pdf/render', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					...requestData,
-					htmlContent
-				})
-			});
+				const result = await response.json();
 
-			console.log('PDF 렌더링 요청 응답:', response);
+				if (result.success && result.downloadUrl) {
+					// PDF 다운로드 처리
+					await downloadPdf(result.downloadUrl, result.fileName || fileName || 'invoice.pdf');
+					onRenderComplete?.(true);
+					return; // 성공하면 함수 종료
+				} else {
+					throw new Error(result.error || 'PDF 생성에 실패했습니다.');
+				}
+			} catch (error) {
+				lastError = error;
+				console.error(`PDF 렌더링 시도 ${attempt} 오류:`, error);
 
-			if (!response.ok) {
-				throw new Error(`PDF 렌더링 요청 실패: ${response.statusText}`);
+				// 마지막 시도가 아니면 잠시 대기 후 재시도
+				if (attempt < maxRetries) {
+					console.log(`${retryDelay}ms 후 재시도...`);
+					await new Promise((resolve) => setTimeout(resolve, retryDelay));
+				}
 			}
-
-			const result = await response.json();
-
-			if (result.success && result.downloadUrl) {
-				// PDF 다운로드 처리
-				await downloadPdf(result.downloadUrl, result.fileName || fileName || 'invoice.pdf');
-				onRenderComplete?.(true);
-			} else {
-				throw new Error(result.error || 'PDF 생성에 실패했습니다.');
-			}
-		} catch (error) {
-			console.error('PDF 렌더링 오류:', error);
-			onRenderComplete?.(
-				false,
-				error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
-			);
 		}
+
+		// 모든 시도가 실패한 경우
+		console.error('PDF 렌더링 최종 실패:', lastError);
+		onRenderComplete?.(
+			false,
+			lastError instanceof Error
+				? lastError.message
+				: 'PDF 생성에 실패했습니다. 잠시 후 다시 시도해주세요.'
+		);
 	}
 
 	// 컴포넌트 마운트 후 렌더링 완료 표시 및 자동 PDF 생성
@@ -397,7 +429,7 @@
 <div bind:this={containerElement} class="invoice-pdf-renderer">
 	{#if isRendered}
 		{@const InvoiceComponent = getInvoiceComponent()}
-		<InvoiceComponent {data} />
+		<InvoiceComponent {data} invoiceMoney={$invoiceMoney} deliveryInvoice={$deliveryInvoice} />
 	{/if}
 </div>
 

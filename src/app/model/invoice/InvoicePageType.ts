@@ -5,7 +5,8 @@ export enum InvoicePageType {
 	CAP = 'cap',
 	CUSTOM = 'custom',
 	PARTIAL = 'partial',
-	ALLONFOUR = 'allonfour'
+	ALLONFOUR = 'allonfour',
+	DENTISTRY = 'dentistry'
 }
 
 /**

@@ -1,11 +1,17 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
 	import {
 		InvoiceCommonService,
 		SUPPLIER_INFO
 	} from '../../../service/invoice/InvoiceCommonService';
 
-	const { data } = $props<{ data: any }>();
+	// ===== PROPS =====
+	interface Props {
+		data: any;
+		invoiceMoney?: number;
+		deliveryInvoice?: number;
+	}
+
+	const { data, invoiceMoney = 0, deliveryInvoice = 0 }: Props = $props();
 
 	// ===== SERVICE INITIALIZATION =====
 	const invoiceService = new InvoiceCommonService(data);
@@ -17,17 +23,10 @@
 	const calendarData = invoiceService.getCalendarData();
 	const [year, month] = (data.param?.date || '2024-01').split('-').map(Number);
 
-	// ===== STATE =====
-	let invoiceMoney = writable(0);
-	let deliveryInvoice = writable(0);
-
 	// ===== REACTIVE CALCULATIONS =====
 	const deliveryCount = $derived(invoiceService.calculateDeliveryCount());
 	const totalPrice = $derived(invoiceService.calculateTotalPrice());
 	const deliveryDiscount = $derived(invoiceService.calculateDeliveryDiscount());
-
-	// 배송비 초기화
-	deliveryInvoice.set(invoiceService.calculateDeliveryInvoice());
 </script>
 
 <main
@@ -75,10 +74,10 @@
 						</h1>
 						<h1
 							class="ml-auto text-end text-base font-bold text-white"
-							data-total-price={totalPrice - Number($invoiceMoney)}
-							data-prepaid-amount={Number($invoiceMoney)}
+							data-total-price={totalPrice - Number(invoiceMoney)}
+							data-prepaid-amount={Number(invoiceMoney)}
 						>
-							{(totalPrice - Number($invoiceMoney)).toLocaleString()}원
+							{(totalPrice - Number(invoiceMoney)).toLocaleString()}원
 						</h1>
 					</div>
 				</div>
@@ -225,20 +224,20 @@
 						{corpInfo.totalRemakePrice.toLocaleString()}원
 					</td>
 					<td class="whitespace-nowrap px-2 py-2 text-xs font-medium"
-						>{#if $invoiceMoney > 0}전월 잔액 : {Number($invoiceMoney).toLocaleString()}원{/if}</td
+						>{#if invoiceMoney > 0}전월 잔액 : {Number(invoiceMoney).toLocaleString()}원{/if}</td
 					>
 				</tr>
 				<tr class="bg-violet-700 text-white">
 					<td class="whitespace-nowrap px-2 py-2 text-sm font-semibold">배송비용</td>
 					<td
 						class="whitespace-nowrap px-2 py-2 text-sm font-semibold"
-						data-delivery-fee={$deliveryInvoice}>{$deliveryInvoice.toLocaleString()}원</td
+						data-delivery-fee={deliveryInvoice}>{deliveryInvoice.toLocaleString()}원</td
 					>
 					<td class="whitespace-nowrap px-2 py-2 text-sm font-semibold"></td>
 					<td class="whitespace-nowrap px-2 py-2 text-sm font-semibold"></td>
 					<td class="whitespace-nowrap px-2 py-2 text-sm font-semibold">출력금액</td>
-					<td class="whitespace-nowrap px-2 py-2 text-sm font-semibold"
-						>{(totalPrice - Number($invoiceMoney)).toLocaleString()}원</td
+					<td class="whitespace-nowrap px-2 py-2 text-end text-sm font-semibold"
+						>{(totalPrice - Number(invoiceMoney)).toLocaleString()}원</td
 					>
 				</tr>
 			</tfoot>

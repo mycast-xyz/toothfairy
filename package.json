@@ -49,6 +49,7 @@
 		"axios": "^1.7.9",
 		"date-fns": "^4.1.0",
 		"dropzone": "6.0.0-beta.2",
+		"es-hangul": "^2.3.6",
 		"format": "^0.2.2",
 		"jspdf": "^3.0.1",
 		"jspdf-autotable": "^5.0.2",

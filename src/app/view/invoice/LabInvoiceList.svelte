@@ -14,6 +14,13 @@
 			>
 				<span>회사명</span>
 			</th>
+
+			<th
+				scope="col"
+				class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+			>
+				총 청구금액
+			</th>
 			<th
 				scope="col"
 				class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
@@ -50,10 +57,19 @@
 				>
 					<span>{item.corp_name}</span>
 				</th>
+				<th
+					scope="col"
+					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+				>
+					{(item?.existingInvoice || [])
+						.reduce((total: any, inv: any) => total + Number(inv?.totalPrice || 0), 0)
+						.toLocaleString()}원
+				</th>
 				<td
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
 					<a href={`/setting/invoice/${item.id}?date=${data.param.date}&item=cap`}>
+						<span> </span>
 						<span>출력: {item.invoice.cap.normal}, 리메이크: {item.invoice.cap.remake}</span>
 					</a>
 				</td>

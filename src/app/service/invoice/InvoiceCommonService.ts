@@ -100,6 +100,8 @@ export class InvoiceCommonService {
 		this.mapInvoiceData();
 		this.calculateCourierFees();
 		this.addDeliveryStandards();
+		// 배송비를 corpInfo에 저장
+		this.corpInfo.deliveryInvoice = this.calculateDeliveryInvoice();
 	}
 
 	// ===== UTILITY FUNCTIONS =====
@@ -140,7 +142,7 @@ export class InvoiceCommonService {
 	}
 
 	private calculatePriceTotals(priceType: 'custom' | 'partial' | 'cap'): void {
-		if (this.corpInfo.normalPrice && this.corpInfo.remakePrice) {
+		if (this.corpInfo.normalPrice !== undefined && this.corpInfo.remakePrice !== undefined) {
 			this.corpInfo.totalNormalPrice = this.corpInfo.totalNormalUnitNum * this.corpInfo.normalPrice;
 			this.corpInfo.totalRemakePrice = this.corpInfo.totalRemakeUnitNum * this.corpInfo.remakePrice;
 		}
@@ -153,7 +155,7 @@ export class InvoiceCommonService {
 	): number {
 		if (!invoice) return 0;
 
-		if (this.corpInfo.normalPrice && this.corpInfo.remakePrice) {
+		if (this.corpInfo.normalPrice !== undefined && this.corpInfo.remakePrice !== undefined) {
 			if (type === 'normal') return invoice * this.corpInfo.normalPrice;
 			if (type === 'remake') return invoice * this.corpInfo.remakePrice;
 		}

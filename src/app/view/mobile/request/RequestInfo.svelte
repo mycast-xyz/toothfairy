@@ -1,7 +1,6 @@
 <script lang="ts">
 	// 헤더바
 	import HeaderBar from './HeaderBar.svelte';
-	import PatientInfo from './PatientInfo.svelte';
 	import TreatmentInfo from './TreatmentInfo.svelte';
 
 	// 컴포넌트 처리
@@ -33,9 +32,7 @@
 		<article class="w-full pt-3">
 			<HeaderBar {currentStep} />
 
-			{#if currentStep == 1}
-				<PatientInfo {nextStep} />
-			{:else if currentStep == 2}
+			{#if currentStep == 1}{:else if currentStep == 2}
 				<TreatmentInfo {nextStep} />
 			{:else if currentStep == 3}
 				<TreatmentInfo {nextStep} />

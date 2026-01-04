@@ -237,7 +237,7 @@ class ConfigService {
 					price: {
 						list: '/api/v0/price/list',
 						upload: '/api/v0/price/upload',
-						search: '/api/v0/price/search',
+						search: '/api/v0/price/search/:prkey',
 						type: '/api/v0/price/list/type',
 						update: '/api/v0/price/list/:id'
 					},
