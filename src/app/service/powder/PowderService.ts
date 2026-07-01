@@ -1,31 +1,91 @@
 import axios from 'axios';
 import { configService } from '../ConfigService';
 import { authService } from '../auth/AuthService';
-import type { PowderDayUnits } from '../../model/powder/PowderType';
+import type { PowderDayUnits, PowderStream } from '../../model/powder/PowderType';
 
 /**
  * 파우더 관리 서비스 — API 호출 캡슐화.
- * 엔드포인트는 ConfigService 경유(하드코딩 금지), 인증은 토큰/쿠키.
+ * 엔드포인트는 ConfigService 경유, 인증은 토큰/쿠키.
  */
-export async function fetchPowderUnits(date: string): Promise<PowderDayUnits[]> {
+
+export interface PowderRecord {
+	powderType: PowderStream;
+	date: string; // YYYY-MM-DD
+	remainingAmt: number | string;
+	refillBottles: number;
+}
+
+export interface PowderListData {
+	days: PowderDayUnits[];
+	records: PowderRecord[];
+	config: Record<string, number>; // { cap: g, partialAllonfour: g }
+}
+
+function backendUrl(): string {
 	const config = configService.getConfig();
-	if (!config) {
-		throw new Error('설정 정보를 불러올 수 없습니다.');
-	}
-	const backendUrl = configService.getBackendUrl();
-	const endpoint =
-		configService.getApiEndpoint('powder', 'units') || '/api/v0/powder/units';
-	const url = `${backendUrl}${endpoint}?date=${encodeURIComponent(date)}`;
+	if (!config) throw new Error('설정 정보를 불러올 수 없습니다.');
+	return configService.getBackendUrl();
+}
 
+async function authHeaders() {
 	const token = await authService.getJwtToken();
-	const response = await axios.get(url, {
-		withCredentials: true,
-		headers: token ? { Authorization: `Bearer ${token}` } : {}
-	});
+	return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
-	const data = response.data;
-	if (data?.status === 'ok' && data.data?.days) {
-		return data.data.days as PowderDayUnits[];
+/** 월별 유닛만(Phase 1 호환) */
+export async function fetchPowderUnits(date: string): Promise<PowderDayUnits[]> {
+	const url = `${backendUrl()}/api/v0/powder/units?date=${encodeURIComponent(date)}`;
+	const res = await axios.get(url, {
+		withCredentials: true,
+		headers: await authHeaders()
+	});
+	return res.data?.status === 'ok' && res.data.data?.days ? res.data.data.days : [];
+}
+
+/** 월별 종합(유닛 + 남은량/보충 기록 + 통용량) */
+export async function fetchPowderList(date: string): Promise<PowderListData> {
+	const url = `${backendUrl()}/api/v0/powder/list?date=${encodeURIComponent(date)}`;
+	const res = await axios.get(url, {
+		withCredentials: true,
+		headers: await authHeaders()
+	});
+	const d = res.data?.data || {};
+	return {
+		days: d.days || [],
+		records: d.records || [],
+		config: d.config || { cap: 1000, partialAllonfour: 1000 }
+	};
+}
+
+/** 일자 기록(남은량/보충) 저장 */
+export async function savePowderRecord(
+	powderType: PowderStream,
+	recordDate: string,
+	remainingAmt: number,
+	refillBottles: number
+): Promise<void> {
+	const url = `${backendUrl()}/api/v0/powder/record`;
+	const res = await axios.post(
+		url,
+		{ powderType, recordDate, remainingAmt, refillBottles },
+		{ withCredentials: true, headers: await authHeaders() }
+	);
+	if (res.data?.status !== 'ok') {
+		throw new Error(res.data?.message || '저장에 실패했습니다.');
 	}
-	return [];
+}
+
+/** 통 용량 설정 저장 */
+export async function savePowderConfig(
+	config: Array<{ powderType: PowderStream; bottleCapacityG: number }>
+): Promise<void> {
+	const url = `${backendUrl()}/api/v0/powder/config`;
+	const res = await axios.put(
+		url,
+		{ config },
+		{ withCredentials: true, headers: await authHeaders() }
+	);
+	if (res.data?.status !== 'ok') {
+		throw new Error(res.data?.message || '통 용량 저장에 실패했습니다.');
+	}
 }

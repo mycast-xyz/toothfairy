@@ -3,8 +3,12 @@
 	import { writable } from 'svelte/store';
 	import PageHeaderBar from '../../../app/view/components/PageHeaderBar.svelte';
 	import MonthDatePicker from '../../../app/view/components/datepicker/MonthDatePicker.svelte';
-	import { fetchPowderUnits } from '../../../app/service/powder/PowderService';
-	import type { PowderDayUnits } from '../../../app/model/powder/PowderType';
+	import {
+		fetchPowderList,
+		savePowderRecord,
+		savePowderConfig
+	} from '../../../app/service/powder/PowderService';
+	import { toastStore } from '../../../app/service/ToastService';
 
 	export let data: { date: string };
 
@@ -12,27 +16,67 @@
 	const [y, m] = (data?.date || '').split('-').map(Number);
 	let selectedYear = writable(y || now.getFullYear());
 	let selectedMonth = writable(m || now.getMonth() + 1);
+	$: dateStr = `${$selectedYear}-${String($selectedMonth).padStart(2, '0')}`;
 
-	let days: PowderDayUnits[] = [];
+	// 통 용량(스트림별, g). UI에서 설정. cap=캡, pa=파샬+올온포
+	let capCap = 1000;
+	let capPa = 1000;
+	let savingConfig = false;
+
+	interface Cell {
+		units: number;
+		remaining: number | null;
+		refill: number;
+	}
+	interface Row {
+		date: string;
+		cap: Cell;
+		pa: Cell;
+	}
+	let rows: Row[] = [];
 	let loading = false;
 	let error = '';
 
-	$: dateStr = `${$selectedYear}-${String($selectedMonth).padStart(2, '0')}`;
+	const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+	const weekday = (d: string) => weekdays[new Date(d).getDay()] ?? '';
 
 	async function loadData() {
 		loading = true;
 		error = '';
 		try {
-			days = await fetchPowderUnits(dateStr);
+			const { days, records, config } = await fetchPowderList(dateStr);
+			capCap = Number(config.cap) || 1000;
+			capPa = Number(config.partialAllonfour) || 1000;
+
+			const byDate: Record<string, Row> = {};
+			for (const d of days) {
+				byDate[d.date] = {
+					date: d.date,
+					cap: { units: d.capUnits, remaining: null, refill: 0 },
+					pa: { units: d.partialAllonfourUnits, remaining: null, refill: 0 }
+				};
+			}
+			for (const r of records) {
+				if (!byDate[r.date]) {
+					byDate[r.date] = {
+						date: r.date,
+						cap: { units: 0, remaining: null, refill: 0 },
+						pa: { units: 0, remaining: null, refill: 0 }
+					};
+				}
+				const cell = r.powderType === 'cap' ? byDate[r.date].cap : byDate[r.date].pa;
+				cell.remaining = Number(r.remainingAmt);
+				cell.refill = Number(r.refillBottles);
+			}
+			rows = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 		} catch (e) {
-			console.error('❌ 파우더 유닛 조회 실패:', e);
-			error = '파우더 유닛을 불러오지 못했습니다.';
-			days = [];
+			console.error('❌ 파우더 조회 실패:', e);
+			error = '파우더 데이터를 불러오지 못했습니다.';
+			rows = [];
 		} finally {
 			loading = false;
 		}
 	}
-
 	onMount(loadData);
 
 	function handleYearChange(event: CustomEvent) {
@@ -45,13 +89,60 @@
 		loadData();
 	}
 
-	$: totalCapPartial = days.reduce((s, d) => s + d.capPartialUnits, 0);
-	$: totalAllonfour = days.reduce((s, d) => s + d.allonfourUnits, 0);
+	// 소모량/유닛당 계산(rows + 통용량 의존). 직전 '남은량 기록 있는' 행 기준.
+	$: computed = rows.map((row, i) => {
+		const calc = (key: 'cap' | 'pa', cap: number) => {
+			const cur = row[key];
+			if (cur.remaining == null) return { c: null as number | null, pu: null as number | null };
+			let prev: Cell | null = null;
+			for (let j = i - 1; j >= 0; j--) {
+				if (rows[j][key].remaining != null) {
+					prev = rows[j][key];
+					break;
+				}
+			}
+			if (!prev) return { c: null, pu: null }; // 첫 기록일: 기준값
+			const c = (prev.remaining as number) + (cur.refill || 0) * cap - cur.remaining;
+			const pu = cur.units > 0 ? c / cur.units : null;
+			return { c, pu };
+		};
+		return { cap: calc('cap', capCap), pa: calc('pa', capPa) };
+	});
 
-	// 요일 표시용
-	const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-	function weekday(dateStr: string): string {
-		return weekdays[new Date(dateStr).getDay()] ?? '';
+	const fmtG = (v: number | null) =>
+		v == null ? '—' : `${Math.round(v).toLocaleString()}g`;
+	const fmtPer = (v: number | null) => (v == null ? '—' : v.toFixed(1));
+
+	async function onEdit(i: number, key: 'cap' | 'pa') {
+		rows = rows; // 재계산 트리거
+		const cell = rows[i][key];
+		const powderType = key === 'cap' ? 'cap' : 'partialAllonfour';
+		try {
+			await savePowderRecord(
+				powderType,
+				rows[i].date,
+				Number(cell.remaining) || 0,
+				Number(cell.refill) || 0
+			);
+		} catch (e: any) {
+			toastStore.error(e?.message || '저장에 실패했습니다.');
+		}
+	}
+
+	async function saveConfig() {
+		savingConfig = true;
+		try {
+			await savePowderConfig([
+				{ powderType: 'cap', bottleCapacityG: Number(capCap) || 0 },
+				{ powderType: 'partialAllonfour', bottleCapacityG: Number(capPa) || 0 }
+			]);
+			toastStore.success('통 용량을 저장했습니다.');
+			rows = rows; // 소모량 재계산
+		} catch (e: any) {
+			toastStore.error(e?.message || '통 용량 저장에 실패했습니다.');
+		} finally {
+			savingConfig = false;
+		}
 	}
 </script>
 
@@ -62,71 +153,144 @@
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8 dark:bg-gray-900">
 	<PageHeaderBar
 		title="파우더 관리"
-		description="일자별 출력 유닛과 파우더 소모량을 관리합니다."
+		description="일자별 파우더 남은량·보충을 입력하면 소모량과 유닛당 사용량이 계산됩니다."
 	></PageHeaderBar>
 
 	<div class="mt-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-		<!-- 월 선택 -->
-		<div class="mb-4 flex items-center gap-3">
-			<MonthDatePicker
-				bind:selectedYear={$selectedYear}
-				selectedMonth={$selectedMonth}
-				on:yearChange={handleYearChange}
-				on:select={handleMonthSelect}
-			/>
-			<span class="text-sm text-gray-500 dark:text-gray-400">
-				유닛 수는 센터 출력물에서 자동 연동됩니다(정상+리메이크, 커스텀 제외).
-			</span>
+		<!-- 상단: 월 선택 + 통용량 설정 -->
+		<div class="mb-4 flex flex-wrap items-end justify-between gap-4">
+			<div class="flex items-center gap-3">
+				<MonthDatePicker
+					bind:selectedYear={$selectedYear}
+					selectedMonth={$selectedMonth}
+					on:yearChange={handleYearChange}
+					on:select={handleMonthSelect}
+				/>
+				<span class="text-xs text-gray-500 dark:text-gray-400">
+					유닛은 센터 출력물 자동 연동(정상+리메이크, 커스텀 제외)
+				</span>
+			</div>
+			<div class="flex items-end gap-2 text-sm">
+				<label class="flex flex-col text-gray-500 dark:text-gray-400">
+					캡 통 용량(g)
+					<input
+						type="number"
+						bind:value={capCap}
+						class="mt-1 w-28 rounded border border-gray-300 px-2 py-1 text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+					/>
+				</label>
+				<label class="flex flex-col text-gray-500 dark:text-gray-400">
+					올온포·파샬 통 용량(g)
+					<input
+						type="number"
+						bind:value={capPa}
+						class="mt-1 w-28 rounded border border-gray-300 px-2 py-1 text-right dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+					/>
+				</label>
+				<button
+					type="button"
+					onclick={saveConfig}
+					disabled={savingConfig}
+					class="rounded-lg bg-violet-500 px-3 py-2 text-white hover:bg-violet-600 disabled:opacity-60"
+				>
+					{savingConfig ? '저장 중...' : '통 용량 저장'}
+				</button>
+			</div>
 		</div>
 
-		<!-- 일자별 유닛 테이블 -->
 		<div class="overflow-x-auto">
 			<table class="min-w-full text-sm">
 				<thead>
-					<tr class="border-b border-gray-200 text-gray-500 dark:border-gray-700 dark:text-gray-400">
-						<th class="px-4 py-3 text-left">날짜</th>
-						<th class="px-4 py-3 text-right">캡·파샬 유닛</th>
-						<th class="px-4 py-3 text-right">올온포 유닛</th>
+					<tr class="text-gray-500 dark:text-gray-400">
+						<th rowspan="2" class="border-b border-gray-200 px-3 py-2 text-left dark:border-gray-700"
+							>날짜</th
+						>
+						<th colspan="5" class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
+							>캡 파우더</th
+						>
+						<th colspan="5" class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
+							>올온포·파샬 파우더</th
+						>
+					</tr>
+					<tr class="text-xs text-gray-400">
+						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700">남은량(g)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(통)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">소모량</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">유닛</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">g/유닛</th>
+						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700">남은량(g)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(통)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">소모량</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">유닛</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">g/유닛</th>
 					</tr>
 				</thead>
 				<tbody class="divide-y divide-gray-100 dark:divide-gray-700">
 					{#if loading}
-						<tr><td colspan="3" class="px-4 py-10 text-center text-gray-500">불러오는 중...</td></tr>
+						<tr><td colspan="11" class="px-3 py-10 text-center text-gray-500">불러오는 중...</td></tr>
 					{:else if error}
-						<tr><td colspan="3" class="px-4 py-10 text-center text-red-600">{error}</td></tr>
-					{:else if days.length === 0}
+						<tr><td colspan="11" class="px-3 py-10 text-center text-red-600">{error}</td></tr>
+					{:else if rows.length === 0}
 						<tr
-							><td colspan="3" class="px-4 py-10 text-center text-gray-500"
-								>해당 월에 출력 유닛 기록이 없습니다.</td
+							><td colspan="11" class="px-3 py-10 text-center text-gray-500"
+								>해당 월 데이터가 없습니다.</td
 							></tr
 						>
 					{:else}
-						{#each days as d (d.date)}
+						{#each rows as row, i (row.date)}
 							<tr class="text-gray-800 dark:text-gray-200">
-								<td class="whitespace-nowrap px-4 py-2.5">
-									{d.date}
-									<span class="ml-1 text-xs text-gray-400">({weekday(d.date)})</span>
+								<td class="whitespace-nowrap px-3 py-1.5">
+									{row.date}<span class="ml-1 text-xs text-gray-400">({weekday(row.date)})</span>
 								</td>
-								<td class="px-4 py-2.5 text-right font-medium">{d.capPartialUnits}</td>
-								<td class="px-4 py-2.5 text-right font-medium">{d.allonfourUnits}</td>
+								<!-- 캡 -->
+								<td class="border-l border-gray-100 px-1 py-1 dark:border-gray-700">
+									<input
+										type="number"
+										bind:value={rows[i].cap.remaining}
+										onchange={() => onEdit(i, 'cap')}
+										class="w-20 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-1 py-1">
+									<input
+										type="number"
+										bind:value={rows[i].cap.refill}
+										onchange={() => onEdit(i, 'cap')}
+										class="w-14 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-2 py-1.5 text-right">{fmtG(computed[i].cap.c)}</td>
+								<td class="px-2 py-1.5 text-right text-gray-500">{row.cap.units}</td>
+								<td class="px-2 py-1.5 text-right font-medium">{fmtPer(computed[i].cap.pu)}</td>
+								<!-- 올온포·파샬 -->
+								<td class="border-l border-gray-100 px-1 py-1 dark:border-gray-700">
+									<input
+										type="number"
+										bind:value={rows[i].pa.remaining}
+										onchange={() => onEdit(i, 'pa')}
+										class="w-20 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-1 py-1">
+									<input
+										type="number"
+										bind:value={rows[i].pa.refill}
+										onchange={() => onEdit(i, 'pa')}
+										class="w-14 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-2 py-1.5 text-right">{fmtG(computed[i].pa.c)}</td>
+								<td class="px-2 py-1.5 text-right text-gray-500">{row.pa.units}</td>
+								<td class="px-2 py-1.5 text-right font-medium">{fmtPer(computed[i].pa.pu)}</td>
 							</tr>
 						{/each}
 					{/if}
 				</tbody>
-				{#if days.length > 0}
-					<tfoot>
-						<tr class="border-t-2 border-gray-300 font-semibold dark:border-gray-600">
-							<td class="px-4 py-3">월 합계</td>
-							<td class="px-4 py-3 text-right">{totalCapPartial}</td>
-							<td class="px-4 py-3 text-right">{totalAllonfour}</td>
-						</tr>
-					</tfoot>
-				{/if}
 			</table>
 		</div>
 
 		<p class="mt-3 text-xs text-gray-400">
-			※ 다음 단계에서 일자별 파우더 남은량·보충(통) 입력과 소모량·유닛당 사용량 계산이 추가됩니다.
+			※ 소모량 = 전날 남은량 + (보충 통수 × 통 용량) − 오늘 남은량. 첫 기록일·유닛 0인 날은 계산 불가(—).
 		</p>
 	</div>
 </main>
