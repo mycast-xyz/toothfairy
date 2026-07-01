@@ -330,7 +330,7 @@ export class CamPrintViewService {
 	private setDefaultProgressBarData() {
 		const defaultProgressBarData = [
 			{
-				title: '오늘 출력물',
+				title: '일반 출력물',
 				percent: 0,
 				remaining: 0,
 				total: 0,
@@ -488,12 +488,13 @@ export class CamPrintViewService {
 	// 출력물 작업
 	async startPrintJob(fileId: string) {
 		try {
+			// 실패 시 completeCamFileById가 throw → 아래 catch로 진입(성공 오인 방지)
 			await completeCamFileById(fileId);
 			this.refreshFromDB();
-			toastStore.info('CAM 작업이 완료되었습니다.');
-		} catch (error) {
+			toastStore.success('CAM 작업이 완료되었습니다.');
+		} catch (error: any) {
 			console.error('❌ CAM 작업 완료 처리 실패:', error);
-			toastStore.error('CAM 작업 완료 처리에 실패했습니다.');
+			toastStore.error(error?.message || 'CAM 작업 완료 처리에 실패했습니다.');
 		}
 	}
 

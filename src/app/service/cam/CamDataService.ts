@@ -3,7 +3,6 @@ import axios from 'axios';
 // DB에서 최신 CAM 출력물 리스트를 API 백엔드 서버에서 받아오는 함수
 import { configService } from '../ConfigService';
 import { authService } from '../auth/AuthService';
-import { toastStore } from '../ToastService';
 
 // 필터 파라미터 타입 정의
 export interface CamFilterParams {
@@ -248,15 +247,15 @@ export async function completeCamFileById(fileId: string | number): Promise<void
 		);
 
 		const data = response.data;
-		if (data.status === 'ok') {
-			toastStore.success(data.message || '파일이 완료 처리되었습니다.');
-		} else {
-			toastStore.error(data.message || '파일 완료 처리 중 오류가 발생했습니다.');
+		// 실패면 예외를 던져 호출부가 성공으로 오인하지 않게 한다.
+		// (토스트는 호출부에서 성공/실패를 판단해 한 번만 띄우도록 소유권을 넘김 — 성공/에러 토스트 중복 방지)
+		if (data.status !== 'ok') {
+			throw new Error(data.message || '파일 완료 처리 중 오류가 발생했습니다.');
 		}
 	} catch (error: any) {
 		console.error('❌ 파일 완료 처리 중 오류 발생:', error);
 		const msg = error?.response?.data?.message || error.message || '파일 완료 처리에 실패했습니다.';
-		toastStore.error(msg);
+		throw new Error(msg);
 	}
 }
 

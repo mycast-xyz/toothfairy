@@ -128,42 +128,20 @@ export const CATEGORY_OPTIONS = [
 	{ value: 'Zig', label: '지그' }
 ];
 
+// 상태 필터 옵션 — 라벨은 getStatusText 단일 소스를 재사용해 배지/탭과 표기 통일
 export const STATUS_OPTIONS = [
 	{ value: '', label: '전체' },
-	{ value: 'processing', label: '처리중' },
-	{ value: 'completed', label: '완료' },
-	{ value: 'error', label: '오류' },
-	{ value: 'received', label: '수신됨' }
+	{ value: 'received', label: getStatusText('received') },
+	{ value: 'processing', label: getStatusText('processing') },
+	{ value: 'completed', label: getStatusText('completed') },
+	{ value: 'error', label: getStatusText('error') }
 ];
 
-// 기본 진행률 바 데이터
+// 기본 진행률 바 데이터 — 실데이터 로드 전 초기값.
+// 가짜 수치(32.5% 등) 대신 0으로 두고, 제목은 라이브(updateProgressBarDataFromData)와 동일하게 맞춤.
 export const DEFAULT_PROGRESS_BAR_DATA = [
-	{
-		title: '오늘 출력물',
-		percent: 32.5,
-		remaining: 650,
-		total: 2000,
-		barColor: 'bg-blue-500'
-	},
-	{
-		title: '긴급 출력물',
-		percent: 15.2,
-		remaining: 320,
-		total: 2100,
-		barColor: 'bg-red-500'
-	},
-	{
-		title: '전날 출력물',
-		percent: 32.5,
-		remaining: 650,
-		total: 2000,
-		barColor: 'bg-green-500'
-	},
-	{
-		title: '이번달 출력물',
-		percent: 32.5,
-		remaining: 650,
-		total: 2000,
-		barColor: 'bg-yellow-500'
-	}
+	{ title: '일반 출력물', percent: 0, remaining: 0, total: 0, barColor: 'bg-blue-500' },
+	{ title: '긴급 출력물', percent: 0, remaining: 0, total: 0, barColor: 'bg-red-500' },
+	{ title: '다운로드 출력물', percent: 0, remaining: 0, total: 0, barColor: 'bg-yellow-500' },
+	{ title: '완료 출력물', percent: 0, remaining: 0, total: 0, barColor: 'bg-green-500' }
 ];

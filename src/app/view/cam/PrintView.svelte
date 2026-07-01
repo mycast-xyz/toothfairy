@@ -81,6 +81,16 @@
 	// 전체 선택 상태 계산
 	$: allSelected = printListData.length > 0 && selectedItems.length === printListData.length;
 
+	// 탭 카운트를 반응형으로 계산.
+	// (기존 {getTabCount('all')}는 함수 호출이라 Svelte가 printListData 의존성을 추적 못 해
+	//  목록이 갱신돼도 배지가 0으로 고정되는 버그가 있었음)
+	$: tabCounts = {
+		all: printListData.length,
+		received: printListData.filter((item) => item.status === 'received').length,
+		processing: printListData.filter((item) => item.status === 'processing').length,
+		completed: printListData.filter((item) => item.status === 'completed').length
+	};
+
 	// 옵션 상수들
 	const folderOptions = FOLDER_OPTIONS;
 	const categoryOptions = CATEGORY_OPTIONS;
@@ -123,23 +133,6 @@
 		filterPrintList();
 	}
 
-	// 탭별 데이터 개수 계산
-	function getTabCount(tab: string) {
-		if (!printListData || printListData.length === 0) return 0;
-
-		switch (tab) {
-			case 'all':
-				return printListData.length;
-			case 'received':
-				return printListData.filter((item) => item.status === 'received').length;
-			case 'processing':
-				return printListData.filter((item) => item.status === 'processing').length;
-			case 'completed':
-				return printListData.filter((item) => item.status === 'completed').length;
-			default:
-				return 0;
-		}
-	}
 
 	// 파일명과 확장자를 분리해서 표시하는 함수들
 	function getDisplayFileName(item: any) {
@@ -359,7 +352,7 @@
 									? 'bg-violet-100 text-violet-700'
 									: 'bg-gray-200 text-gray-600'}"
 							>
-								{getTabCount('all')}
+								{tabCounts.all}
 							</span>
 						</button>
 						<button
@@ -375,7 +368,7 @@
 									? 'bg-violet-100 text-violet-700'
 									: 'bg-gray-200 text-gray-600'}"
 							>
-								{getTabCount('received')}
+								{tabCounts.received}
 							</span>
 						</button>
 						<button
@@ -391,7 +384,7 @@
 									? 'bg-violet-100 text-violet-700'
 									: 'bg-gray-200 text-gray-600'}"
 							>
-								{getTabCount('processing')}
+								{tabCounts.processing}
 							</span>
 						</button>
 						<button
@@ -401,13 +394,13 @@
 								: 'border-transparent text-gray-500 hover:text-gray-700'}"
 							onclick={() => handleTabClick('completed')}
 						>
-							완료
+							가공완료
 							<span
 								class="ml-1 rounded-full px-2 py-0.5 text-xs {activeTab === 'completed'
 									? 'bg-violet-100 text-violet-700'
 									: 'bg-gray-200 text-gray-600'}"
 							>
-								{getTabCount('completed')}
+								{tabCounts.completed}
 							</span>
 						</button>
 					</div>
