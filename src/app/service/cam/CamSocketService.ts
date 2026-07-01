@@ -33,6 +33,13 @@ export const folderMonitorStatus = writable<{
 // 폴더 모니터링 알림 스토어
 export const folderMonitorNotification = writable<string | null>(null);
 
+// 감시 폴더 접근 상태(수신 파이프라인 헬스). healthy=false면 파일 수신이 중단될 수 있음.
+export const folderMonitorHealth = writable<{
+	healthy: boolean;
+	inaccessible: string[];
+	checkedAt: string;
+} | null>(null);
+
 class CamSocketService {
 	private socket: SocketIOClient | null = null;
 	private reconnectAttempts = 0;
@@ -221,6 +228,11 @@ class CamSocketService {
 		// CAM 출력물 진행률 업데이트
 		this.socket.on('cam/print/progress', (data) => {
 			camPrintProgressData.set(data);
+		});
+
+		// 감시 폴더 헬스 상태(수신 폴더 접근 가능 여부)
+		this.socket.on('cam/monitor/health', (data) => {
+			folderMonitorHealth.set(data);
 		});
 
 		// CAM 출력물 알림

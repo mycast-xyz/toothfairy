@@ -5,6 +5,7 @@
 	import CustomDatePicker from '../components/datepicker/CustomDatePicker.svelte';
 	import PageHeaderBar from '../components/PageHeaderBar.svelte';
 	import { camPrintViewService } from '../../service/cam/CamPrintView';
+	import { folderMonitorHealth } from '../../service/cam/CamSocketService';
 	import { toastStore } from '../../service/ToastService';
 	import { WindowService } from '../../service/WindowService';
 	import {
@@ -339,6 +340,24 @@
 			<div class="mb-4 rounded-lg bg-red-100 p-4 text-red-700">
 				<strong>연결 오류:</strong>
 				{connectionError}
+			</div>
+		{/if}
+
+		<!-- 수신 폴더 헬스 경보: 감시 폴더 접근 불가 시(볼륨 미마운트 등) 무음 수신 실패 방지 -->
+		{#if $folderMonitorHealth && !$folderMonitorHealth.healthy}
+			<div
+				class="mb-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-4 text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300"
+			>
+				<i class="ri-error-warning-line mt-0.5 text-lg"></i>
+				<div>
+					<strong>수신 폴더에 접근할 수 없습니다{$folderMonitorHealth.inaccessible?.length
+							? ` (${$folderMonitorHealth.inaccessible
+									.map((t) => (t === 'urgent' ? '긴급' : '일반'))
+									.join(', ')})`
+							: ''}.</strong>
+					새 파일 수신이 중단될 수 있습니다. 저장소(네트워크 드라이브/폴더) 연결 상태를 확인해
+					주세요.
+				</div>
 			</div>
 		{/if}
 
