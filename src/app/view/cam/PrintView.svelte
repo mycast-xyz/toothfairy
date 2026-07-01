@@ -337,9 +337,19 @@
 	<article class="w-full px-2 pt-3">
 		<!-- 연결 상태 표시 -->
 		{#if connectionError}
-			<div class="mb-4 rounded-lg bg-red-100 p-4 text-red-700">
-				<strong>연결 오류:</strong>
-				{connectionError}
+			<div
+				class="mb-4 flex flex-wrap items-center gap-2 rounded-lg bg-red-100 p-4 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+			>
+				<span><strong>연결 오류:</strong> {connectionError}</span>
+				<!-- 인증 만료로 복구 불가 시 재로그인 링크(데드엔드 방지) -->
+				{#if connectionError.includes('인증') || connectionError.includes('로그인')}
+					<a
+						href="/login"
+						class="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700"
+					>
+						다시 로그인
+					</a>
+				{/if}
 			</div>
 		{/if}
 

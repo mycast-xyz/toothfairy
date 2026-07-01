@@ -601,8 +601,14 @@ class CamSocketService {
 				this.socket.disconnect();
 			}
 
-			// JWT 토큰 재갱신 시도
-			const newToken = await authService.refreshJwtToken();
+			// JWT 토큰 재갱신 시도.
+			// 1순위: getJwtToken() — /api/auth/token(SvelteKit) 요청이 hooks.server.ts를 거치며
+			//        만료된 access_token을 refresh_token으로 갱신 → 갱신된 토큰 반환(앱의 실제 복구 경로).
+			// 2순위: refreshJwtToken() — 백엔드 직접 리프레시(폴백).
+			let newToken = await authService.getJwtToken();
+			if (!newToken) {
+				newToken = await authService.refreshJwtToken();
+			}
 
 			if (newToken) {
 				console.log('✅ JWT 토큰 재갱신 성공 - 소켓 재연결 시도');
@@ -619,11 +625,10 @@ class CamSocketService {
 					}
 				}, 1000);
 			} else {
-				console.log('❌ JWT 토큰 재갱신 실패 - 로그인 페이지로 리다이렉트 기능 임시 비활성화');
+				// 리프레시 토큰까지 만료돼 복구 불가. 자동 리다이렉트는 작업 중단 위험이 있어
+				// 하지 않고, 명확한 재로그인 유도 메시지를 남긴다(UI가 재로그인 링크 제공).
+				console.log('❌ JWT 토큰 재갱신 실패 - 재로그인 필요');
 				camSocketError.set('인증이 만료되었습니다. 다시 로그인해주세요.');
-
-				// 로그인 페이지로 리다이렉트
-				// this.redirectToLogin();
 			}
 		} catch (error) {
 			console.error('❌ 인증 에러 처리 중 오류:', error);
