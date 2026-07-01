@@ -1,0 +1,118 @@
+# 기획안 05 — 캠파일(CAM) 사용자 QA & 개선 로드맵
+
+> 작성 2026-07-01 · 상태: **QA + 기획(코드 미변경)**
+> 방법: 라이브 브라우저 QA(로컬 Chrome, `localhost:5173`, 백엔드 `:3000`·소켓 `:30090` 기동) + 코드 QA 3종(기능·데이터흐름 / 기계관리·소켓 / UX·표시·접근성).
+> 대상: `routes/cam/print/*`, `routes/cam/manage/*`, `service/cam/{CamDataService,CamPrintView,CamSocketService}.ts`, `model/cam/{PrintData,PrintUtils}.ts`, `view/cam/{PrintView,BackupResetModal}.svelte`.
+> 참고: 기술 인벤토리 [`docs/status/03-cam-file-flow.md`](../status/03-cam-file-flow.md), 센터 QA 형식 [`03-center-qa-and-improvements.md`](./03-center-qa-and-improvements.md).
+
+---
+
+## 0. 요약 — 사용자가 가장 크게 막히는 곳
+
+- **검색이 의도대로 안 먹음**(파라미터 충돌·이름 불일치) — 파일 찾기부터 막힌다.
+- **여러 파일을 한 번에 못 받음** — 체크박스로 고를 순 있는데 실행 버튼이 없다(주석처리).
+- **"취소" 버튼이 死버튼** — 눌러도 되돌려지지 않고 무조건 성공 안내만.
+- **완료 실패해도 "완료됐다"고 뜸** — 에러를 삼켜 성공으로 오인.
+- **기계관리 화면은 통째로 가짜(목업)** — 실데이터·동작 전무. *(단, 이 화면은 사용자 작업 중인 미완성 파일 — 아래 O-5)*
+- **소켓 포트 표기 모순**(8080 vs 30090) — 환경에 따라 실시간이 통째로 안 붙을 위험.
+- **상태 라벨이 화면마다 3개** — "처리중" 필터 걸면 표엔 "다운로드완료". 상태를 신뢰 못 함.
+
+### 라이브에서 확인된 정상 동작
+- `cam/print` 렌더 정상, 헤더 "**실시간 연결됨**"(소켓 연결됨) ✓, 진행률 4카드 표시, 빈 상태 안내 "현재 출력 대기 중인 작업이 없습니다." ✓, 상단 버튼 "재로드/모니터링 중지/백업 초기화"(오타 아님).
+- 백업 초기화 모달은 비밀번호+되돌릴 수 없음 경고+처리중 상태를 갖춘 편(위험 동작 확인 양호).
+- ※ 검증 시점에 CAM 파일 데이터가 없어(빈 목록) 데이터 흐름 버그(검색/다운로드/완료/취소)는 **코드 근거 기반**이며 라이브 재현은 데이터 유입 후 필요.
+
+---
+
+## 🔴 막힘 (P0 — 진행 불가)
+
+| # | 위치 | 사용자 증상 | 파일:라인 | 근본 원인 |
+|---|---|---|---|---|
+| A1 | 검색/카테고리 | 카테고리 선택+파일명 검색 시 검색어 무시(카테고리가 덮어씀) | `CamPrintView.ts:422,431` | `searchQuery`·`categoryFilter`를 둘 다 `filterParams.title`에 대입 → 뒤가 덮어씀 |
+| A2 | 검색(경로별) | 같은 검색어인데 경로 따라 결과 다름 | `CamPrintView.ts:422` vs `:558` | `filterPrintList`=`title`, `refreshFromDB`=`filename`으로 백엔드 파라미터명 불일치 |
+| A3 | 목록 상단 | 체크박스로 여러 개 골라도 받을 버튼이 없음(선택이 死기능) | `PrintView.svelte:332-341` | "선택 다운로드" 버튼 전체 주석 처리, 멀티 zip REST는 살아있음 |
+| A4 | 작업확인(취소) | "취소" 눌러도 행 그대로, 무조건 "중지되었습니다" | `PrintView.svelte:687-693`, `CamPrintView.ts:498-506`, `CamSocketService.ts:717-731` | 되돌리는 REST 없음, 소켓 `emit(command,stopPrint)`만. 미연결 시 warn만, 성공 토스트는 무조건. 새로고침 없음 |
+| A5 | 완료 버튼 | 완료 실패 시 에러+성공 토스트 동시, "완료됐다" 오인 | `CamDataService.ts:256-260`, `CamPrintView.ts:487-496` | `completeCamFileById`가 에러 삼키고 rethrow 안 함 → 호출부 성공 간주 |
+| A6 | 기계관리 전체 | 기계 상태를 실데이터로 못 봄, 슬롯 클릭은 새로고침 시 소멸, "작업"·지그 死버튼 | `routes/cam/manage/+page.ts`(0바이트), `+page.svelte:57-144` | load 없음, 전부 정적 하드코딩. *(사용자 WIP — O-5)* |
+| A7 | 실시간(환경별) | 실제 서버가 8080이면 소켓 미접속 → 실시간 전무 | config `socket.port:8080`(`application.dev.json:11`) vs 실사용 `baseUrl ws://localhost:30090`(`ConfigService.ts:389`) vs `ConfigUtils.ts:35` 폴백 `8080` | 포트 표기 3중 모순, 실주소를 코드만으로 확정 불가 |
+
+---
+
+## 🟡 혼란 (P1 — 오해 유발)
+
+| # | 위치 | 사용자 증상 | 파일:라인 | 근본 원인 |
+|---|---|---|---|---|
+| C1 | 상태 배지/탭/필터 | 동일 status가 "처리중"·"다운로드완료"·"다운로드 완료"로 제각각 | `PrintUtils.ts:19-31,131-137`; `PrintView.svelte:372,388,404` | 라벨 소스 3곳 분산 |
+| C2 | 상태 배지 | `processing`(=다운로드완료)이 이름은 "진행중"처럼, 색은 노랑(경고/진행색) | `PrintData.ts:2-10`, `PrintUtils.ts:5-15,22` | enum 값 의미역전 + 색 매핑 모순 |
+| C3 | 진행률 카드 | 로드 순간 "전날/이번달" → 연결되면 "다운로드/완료"로 제목이 바뀜 | `PrintUtils.ts:140-169`; `CamPrintView.ts:292-327,330-365` | 제목 상수 3곳 상이 |
+| C4 | 진행률 바 | 첫 진입 시 실제와 무관한 32.5%/650/2000 노출(1초 디바운스 동안) | `CamPrintView.ts:40,270-288`, `PrintUtils.ts:140-169` | 스토어를 더미로 초기화, 실API는 1s 디바운스 후 |
+| C5 | 목록 본문 | 서버 오류·빈 목록·연결 지연이 모두 같은 문구 | `+page.ts:75-77`, `PrintView.svelte:706-708` | load가 에러 삼키고 `[]` 반환, 화면은 `isConnected`로만 분기. REST 실패 배너 없음 |
+| C6 | 완료 처리 | 환경별 설정 있어도 무시(현재는 우연히 일치) | `CamDataService.ts:232` | config `endpoints.cam.data.complete` 있는데 문자열 하드코딩 |
+| C7 | 작업확인 버튼 | `processing`("다운로드완료") 행에 "완료" 버튼 → "이미 완료인데 또?"; completed 행 "취소"는 무엇을 취소인지 불명 | `PrintView.svelte:680-693` | 라벨이 실제 동작(가공완료 처리 / 완료 되돌리기)을 안 드러냄 |
+| C8 | 전역 명칭 | "백업 초기화" 버튼 vs 모달 "작업 폴더 초기화"; 출력물/파일/작업 혼용; **캠 "출력물 관리" ↔ 센터 "출력물 관리" 메뉴 겹침** | `PrintView.svelte:266,306,573`; `BackupResetModal.svelte:83-98`; 메뉴 | 도메인 용어집 부재 |
+| C9 | 실시간 | 파일 수신/폴더 변경이 즉시 push 아니라 목록 재조회로 반영(지연·깜빡임), progress는 이중 조회 | `CamSocketService.ts:321,353,375,425,463,525`; `CamPrintView.ts:188-196` | 대부분 이벤트가 `refreshPrintListFromDB()`(REST) 트리거. 소켓=알림, 진실=REST |
+| C10 | 인증 만료 | 토큰 갱신 실패 시 메시지만 뜨고 멈춘 화면 방치(로그인 이동 X) | `CamSocketService.ts:606-612,660-665` | `redirectToLogin` 호출 주석 처리 |
+| C11 | (유지보수) | `startPrintJob`이 실제로는 완료처리 | `CamPrintView.ts:487-489` | 이름-동작 불일치, 소켓의 진짜 startPrintJob은 死 |
+
+---
+
+## 🟢 불편 (P2)
+
+- **토스트 중복**: 완료 성공 시 서비스+호출부에서 2번 (`CamDataService.ts:252` + `CamPrintView.ts:491`).
+- **빈 상태 colspan 오류**: 열 9개인데 `colspan="8"` → 안내 셀 정렬 어긋남 (`PrintView.svelte:704`).
+- **수신시간 날짜 없음**: `toLocaleTimeString()`만 → 시:분만, 어느 날 파일인지 모름(날짜 필터는 있는데) (`PrintView.svelte:677`).
+- **다운로드 어포던스 약함**: 다운로드가 파일명 텍스트 링크뿐, 아이콘/버튼 없음 (`PrintView.svelte:648-656`).
+- **전체선택 vs 개별 불일치**: completed는 개별 체크 disabled인데 전체선택엔 포함 → allSelected 도달 어려움 (`PrintView.svelte:594-599`).
+- **로딩 판정이 연결상태 기반**: 연결됐지만 fetch 지연 시 "대기 작업 없음"이 잘못 노출 가능(추정) (`PrintView.svelte:706-709`).
+- **死메서드/데드코드**: `requestPrintStatus/Progress`, 소켓 `startPrintJob`(`CamSocketService.ts:668,684,700`), `redirectToLogin`(660-665), 재연결 이중화(112-118 ↔ 529-544).
+- **`subscribe(v=>x=v)()` 안티패턴 다수** — 즉시구독-해제로 동기값 추출, 타이밍 취약 (`CamPrintView.ts` 곳곳). `get(store)`가 정석.
+- **기계관리**: 미사용 import(`onMount/onDestroy/browser`), 이미지 파일명 공백(`jiny f4t.webp`), 이미지 5개로 6행(ZX-5SW 2행 동일), 클래스 오타(`class="l ..."`)·`flex grid` 충돌.
+- **콘솔 로그 과다**: `CamSocketService` 68, `CamPrintView` 14, `PrintView` 13, `CamDataService` 12.
+
+---
+
+## 🎨 UX / 디자인
+
+- **다크모드 반쪽**: `PrintView`·`ProgressBar`에 `dark:` 사실상 전무 → 다크서 흰 섬·대비 소멸(`PrintView.svelte:265,345,489-580`; `ProgressBar.svelte:12,26`). 반면 `manage`는 dark 사용 → 섹터 내 들쭉날쭉. 백업 모달도 footer만 dark.
+- **반응형 붕괴**: 고정 `ml-64`(`PrintView.svelte:265`), 진행률 4카드 `flex-row`+`w-full` 줄바꿈 없음 → 좁은 폭 압착. 기계관리 높이 비반응형(`manage:19`). ※ 목록 테이블 자체엔 `overflow-x-auto` 있음(양호).
+- **접근성**: 아이콘/작업 버튼 aria-label 부재(`PrintView.svelte:276-308,681-693`), completed 파일명이 버튼 아닌 `span cursor-not-allowed`(가짜 비활성), 기계 이미지 `alt=""` 전부 빈값. ※ 체크박스 `label for`+`sr-only`는 존재(양호).
+- **잘못된 Tailwind 클래스**: 연결표시 `text-bas3`(오타, 미적용) (`PrintView.svelte:271,273`).
+- **카테고리 표기 불규칙**: "h인레이" 등 대소문자 혼재 (`PrintUtils.ts:100-107`).
+
+---
+
+## 수정 로드맵 (사용자 영향 우선)
+
+### Phase A — 🔴 막힘 해소
+1. **검색 파라미터 정합**(A1,A2) — `filterPrintList`에서 검색어/카테고리를 별도 파라미터로 분리, `refreshFromDB`와 파라미터명 통일. 백엔드 정답(title vs filename) 확인(O-3).
+2. **멀티 다운로드 UI 복구/결정**(A3) — 주석 해제 + `downloadSelectedFiles` 연결, 또는 체크박스 자체 제거(O-2).
+3. **취소 동작 정의**(A4) — 되돌리는 REST가 있으면 연결+`refreshFromDB`, 없으면 버튼 숨김. 미연결 시 성공 토스트 금지(O-4).
+4. **완료 실패 전파**(A5) — `completeCamFileById`가 실패 시 throw, 호출부는 성공 시에만 성공 토스트+갱신.
+5. **complete config화**(C6과 함께) — 하드코딩 제거, `ConfigService` 경유.
+6. **소켓 포트 모순 해소**(A7) — 백엔드 실제 포트 확정(O-1) 후 config/ConfigUtils/문서 단일화.
+
+### Phase B — 🟡 혼란 제거
+7. **상태 라벨 단일화**(C1,C2) — 라벨/색 상수 1소스, 드롭다운·탭·배지 재사용. 의미역전 값명 정리(가능 시).
+8. **진행률 제목 통일 + 더미 제거**(C3,C4) — 3곳 제목 상수 통일, 초기값 0/스켈레톤, 로드 전 수치 숨김.
+9. **로드 실패/빈 목록 구분**(C5) — 별도 loading·error 플래그, REST 실패 배너.
+10. **버튼 라벨·명칭 통일**(C7,C8) — "가공완료 처리"/"완료 되돌리기", "백업 초기화"↔모달 문구 통일, 캠/센터 "출력물 관리" 구분(예: 캠은 "출력 파일 관리"), 용어집.
+11. **실시간 개선**(C9) — 이벤트에 데이터 실어 부분 갱신 or progress 이중조회 제거(백엔드 계약 확인 시).
+12. **인증만료 처리**(C10) — 갱신 실패 시 로그인 유도 복구.
+
+### Phase C — 🎨 UX/디자인
+13. 다크모드 PrintView/ProgressBar/모달 대응, 반응형(ml-64 조건화·4카드 flex-wrap), 접근성(aria-label·alt·비활성 시맨틱), `text-bas3` 등 클래스 오타 수정.
+
+### Phase D — 🟢 정리
+14. 토스트 중복 제거, colspan=9, 수신시간에 날짜 포함, 死메서드/데드코드/주석버튼 삭제, `get(store)` 치환, console.log 정리(특히 소켓 68), 카테고리 표기 규칙.
+
+---
+
+## ⚠️ 오픈 이슈 / 결정 필요
+
+- **O-1. 백엔드 실제 소켓 포트**(8080 vs 30090) — A7 수정의 전제. 별도 레포 `toothfairy-socket-server`와 대조 필요.
+- **O-2. 멀티(zip) 다운로드 UI 복구 여부** — 복구 or 체크박스 제거.
+- **O-3. 검색 파라미터 정답**(`title` vs `filename`) + 카테고리 파라미터명 — 백엔드 계약.
+- **O-4. 취소(stopPrintJob)의 실제 사양** — 완료를 되돌리는 REST가 백엔드에 존재하는가, 소켓 command만으로 처리되는가.
+- **O-5. 기계관리(cam/manage) 실구현 범위/우선순위** — 현재 **사용자가 작업 중인 미추적(WIP) 파일**이라 이 QA는 참고용. 데이터 모델·백엔드·연동 범위를 사용자와 확정 후 진행(파우더 관리 기획 [`04`]와 연계 가능 — 기계/슬롯/툴소비 도메인).
+
+> 본 문서는 QA·우선순위화 단계이며 코드는 미변경. 착수 시 O-1(포트)·O-3(검색)·O-4(취소)를 백엔드와 먼저 합의할 것.
