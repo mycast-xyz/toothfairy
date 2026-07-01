@@ -26,11 +26,12 @@
 	let validationErrors = $state<Record<string, string[]>>({});
 	let validationWarnings = $state<Record<string, string[]>>({});
 
+	// 제출 진행 상태 (중복 제출 방지용)
+	let isSubmitting = $state(false);
+
 	// 수정 모드일 때 기존 데이터를 폼에 채우기
 	$effect(() => {
 		if (editMode && editData) {
-			console.log('수정 모드: 기존 데이터를 폼에 채우기', editData);
-
 			// 기본 정보 채우기
 			formData.corpName = editData.corp_name || '';
 			formData.classification = editData.classification || '기공소';
@@ -69,8 +70,6 @@
 				formData.delivery = editData.dentalClinicPrices[0].shipping_type || '';
 				formData.deliveryCost = editData.dentalClinicPrices[0].shipping_price || '';
 			}
-
-			console.log('폼 데이터 업데이트 완료:', formData);
 		}
 	});
 
@@ -94,104 +93,53 @@
 		validationWarnings = { ...validationWarnings, [fieldName]: fieldWarnings };
 	}
 
-	// 폼 데이터 디버그 및 제출 핸들러
+	// 폼 제출 핸들러
 	async function handleSubmit() {
-		console.log('=== 회사 정보 폼 데이터 디버그 ===');
-		console.log('전체 formData:', formData);
-		console.log('--- 개별 필드 ---');
-		console.log('회사명:', formData.corpName);
-		console.log('지역:', formData.region);
-		console.log('기본 주소:', formData.address);
-		console.log('상세 주소:', formData.detailAddress);
-		console.log(
-			'전체 주소:',
-			formData.detailAddress ? `${formData.address}, ${formData.detailAddress}` : formData.address
-		);
-		console.log('전화번호:', formData.phoneNumber);
-		console.log('사업자등록번호:', formData.businessNumber);
-		console.log('이메일:', formData.email);
-		console.log('구분:', formData.classification);
-		console.log('배송 방식:', formData.delivery);
-		console.log('배달비용:', formData.deliveryCost);
-		console.log('--- 출력물 종류 및 가격 (기공소용) ---');
-		console.log('선택된 출력물 종류:', formData.printType);
-		if (formData.printType && formData.printType.length > 0) {
-			formData.printType.forEach((printType: any, index: number) => {
-				console.log(`  ${index + 1}. ${printType.type}:`);
-				console.log(`     정상 가격: ${printType.normalPrice}원`);
-				console.log(`     리메이크 가격: ${printType.remakePrice}원`);
-			});
-		}
+		// 중복 제출(연타) 방지: 이미 진행 중이면 무시
+		if (isSubmitting) return;
+		isSubmitting = true;
 
-		console.log('--- 치료 종류 및 가격 (치과용) ---');
-		console.log('선택된 치료 종류:', formData.treatmentType);
-		if (formData.treatmentType && formData.treatmentType.length > 0) {
-			formData.treatmentType.forEach((treatmentType: any, index: number) => {
-				console.log(`  ${index + 1}. ${treatmentType.type}:`);
-				console.log(`     정상 가격: ${treatmentType.normalPrice}원`);
-				console.log(`     리메이크 가격: ${treatmentType.remakePrice}원`);
-			});
-		}
-
-		console.log('--- 치과 수가 목록 ---');
-		console.log('등록된 수가 목록:', formData.priceData);
-		if (formData.priceData && formData.priceData.length > 0) {
-			formData.priceData.forEach((priceItem: any, index: number) => {
-				console.log(`  ${index + 1}. ID: ${priceItem.id}`);
-				console.log(`     고유번호: ${priceItem.prkey || 'N/A'}`);
-				console.log(`     치료 종류: ${priceItem.type || 'N/A'}`);
-				console.log(`     기공명칭: ${priceItem.technicianname || 'N/A'}`);
-				console.log(`     가격: ${Number(priceItem.price).toLocaleString()}원`);
-				console.log(`     구분: ${priceItem.isCompanyPrice ? '회사별 가격' : '기본 수가'}`);
-			});
-		} else {
-			console.log('  등록된 수가 목록이 없습니다.');
-		}
-
-		console.log('=== 디버그 완료 ===');
-
-		// 1. 전체 데이터 검증
-		const validationResult = CompanyValidationService.validateCompanyData(formData);
-
-		// 검증 결과를 필드별로 분류하여 상태 업데이트
-		validationErrors = {};
-		validationWarnings = {};
-
-		// 에러와 경고를 필드별로 분류
-		validationResult.errors.forEach((error) => {
-			const field = CompanyValidationService.getFieldFromError(error);
-			if (field) {
-				if (!validationErrors[field]) validationErrors[field] = [];
-				validationErrors[field].push(error);
-			}
-		});
-
-		validationResult.warnings.forEach((warning) => {
-			const field = CompanyValidationService.getFieldFromWarning(warning);
-			if (field) {
-				if (!validationWarnings[field]) validationWarnings[field] = [];
-				validationWarnings[field].push(warning);
-			}
-		});
-
-		// 검증 상태 강제 업데이트
-		validationErrors = { ...validationErrors };
-		validationWarnings = { ...validationWarnings };
-
-		// 디버깅: 검증 상태 출력
-		console.log('검증 에러:', validationErrors);
-		console.log('검증 경고:', validationWarnings);
-
-		if (!validationResult.isValid) {
-			CompanyValidationService.showValidationResult(validationResult);
-			return; // 검증 실패 시 함수 종료
-		}
-
-		// 2. 백엔드 API 호출
 		try {
+			// 1. 전체 데이터 검증
+			const validationResult = CompanyValidationService.validateCompanyData(formData);
+
+			// 검증 결과를 필드별로 분류하여 상태 업데이트
+			validationErrors = {};
+			validationWarnings = {};
+
+			// 에러와 경고를 필드별로 분류
+			validationResult.errors.forEach((error) => {
+				const field = CompanyValidationService.getFieldFromError(error);
+				if (field) {
+					if (!validationErrors[field]) validationErrors[field] = [];
+					validationErrors[field].push(error);
+				}
+			});
+
+			validationResult.warnings.forEach((warning) => {
+				const field = CompanyValidationService.getFieldFromWarning(warning);
+				if (field) {
+					if (!validationWarnings[field]) validationWarnings[field] = [];
+					validationWarnings[field].push(warning);
+				}
+			});
+
+			// 검증 상태 강제 업데이트
+			validationErrors = { ...validationErrors };
+			validationWarnings = { ...validationWarnings };
+
+			if (!validationResult.isValid) {
+				CompanyValidationService.showValidationResult(validationResult);
+				return; // 검증 실패 시 함수 종료
+			}
+
+			// 2. 백엔드 API 호출
 			await createCompany();
 		} catch (error) {
 			console.error('회사 생성 실패:', error);
+		} finally {
+			// 제출 상태 해제 (성공/실패/검증실패 모두)
+			isSubmitting = false;
 		}
 	}
 
@@ -227,7 +175,6 @@
 
 			console.log('API 모드:', isUpdate ? '수정' : '생성');
 			console.log('editMode:', editMode);
-			console.log('editData:', editData);
 			console.log('사용할 엔드포인트:', endpoint);
 
 			if (!endpoint) {
@@ -307,8 +254,6 @@
 				}));
 			}
 
-			console.log('API 요청 데이터:', requestData);
-
 			const response = await fetch(fullUrl, {
 				method: method,
 				headers: {
@@ -325,7 +270,6 @@
 						? '회사 정보가 성공적으로 수정되었습니다.'
 						: '회사가 성공적으로 생성되었습니다.';
 					toastStore.success(successMessage);
-					console.log(isUpdate ? '회사 수정 성공:' : '회사 생성 성공:', result);
 
 					// 성공 시 원래 onAddCompany 함수 호출
 					onAddCompany();
@@ -660,14 +604,15 @@
 				<button
 					type="button"
 					onclick={handleSubmit}
-					class="rounded-lg bg-violet-500 px-4 py-3 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300"
+					disabled={isSubmitting}
+					class="rounded-lg bg-violet-500 px-4 py-3 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-4 focus:ring-violet-300 disabled:cursor-not-allowed disabled:opacity-60"
 				>
 					<i
-						class={editMode ? 'ri-edit-line' : 'ri-tooth-line'}
+						class={isSubmitting ? 'ri-loader-4-line ri-spin' : editMode ? 'ri-edit-line' : 'ri-tooth-line'}
 						class:pr-1={true}
 						class:text-base={true}
 					></i>
-					{editMode ? '거래처 수정' : '거래처 추가'}
+					{isSubmitting ? '저장 중...' : editMode ? '거래처 수정' : '거래처 추가'}
 				</button>
 			</div>
 		</div>

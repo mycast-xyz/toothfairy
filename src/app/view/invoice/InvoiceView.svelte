@@ -47,9 +47,18 @@
 	const invoiceDate = data.param?.date || currentYearMonth;
 	const [year, month] = invoiceDate.split('-').map(Number);
 
+	// PDF 생성 도중 사용자가 취소했는지 여부. 취소 후 뒤늦게 도착하는
+	// 완료/실패 콜백이 토스트를 띄우지 않도록 가드하는 플래그.
+	let pdfCancelled = $state(false);
+
 	// ===== EVENT HANDLERS =====
 	function handlePdfRenderComplete(success: boolean, error?: string) {
 		closePdfModal();
+		// 이미 취소했으면 늦게 도착한 결과의 토스트는 무시
+		if (pdfCancelled) {
+			pdfCancelled = false;
+			return;
+		}
 		if (success) {
 			toastStore.success('PDF가 성공적으로 생성되었습니다.');
 		} else {
@@ -75,7 +84,15 @@
 	}
 
 	function handlePdfRenderStart() {
+		pdfCancelled = false; // 새 생성 시작 시 취소 플래그 초기화
 		toastStore.info('PDF 생성 중입니다. 잠시만 기다려주세요...');
+	}
+
+	// PDF 모달 취소: 진행 중 결과의 뒤늦은 토스트를 막고 모달을 닫는다.
+	function handlePdfCancel() {
+		pdfCancelled = true;
+		closePdfModal();
+		toastStore.info('PDF 생성을 취소했습니다.');
 	}
 
 	function handleInvoiceMoneyChange(event: Event) {
@@ -356,16 +373,16 @@
 					<tr class="bg-gray-50 dark:bg-gray-800">
 						<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">소계</td>
 						<td class="whitespace-nowrap px-4 py-4 text-sm font-medium"
-							>{$corpInfo?.totalNormalUnitNum}개</td
+							>{$corpInfo?.totalNormalUnitNum ?? 0}개</td
 						>
 						<td class="whitespace-nowrap px-4 py-4 text-sm font-medium">
-							{$corpInfo?.totalNormalPrice.toLocaleString()}원
+							{($corpInfo?.totalNormalPrice ?? 0).toLocaleString()}원
 						</td>
 						<td class="whitespace-nowrap px-4 py-4 text-sm font-medium"
-							>{$corpInfo?.totalRemakeUnitNum}개</td
+							>{$corpInfo?.totalRemakeUnitNum ?? 0}개</td
 						>
 						<td class="whitespace-nowrap px-4 py-4 text-sm font-medium"
-							>{$corpInfo?.totalRemakePrice.toLocaleString()}원</td
+							>{($corpInfo?.totalRemakePrice ?? 0).toLocaleString()}원</td
 						>
 						{#if currentConfig.showPatientName}
 							<td class="whitespace-nowrap px-4 py-4 text-sm font-medium"
@@ -434,7 +451,7 @@
 				</div>
 				<button
 					type="button"
-					onclick={closePdfModal}
+					onclick={handlePdfCancel}
 					class="rounded-lg bg-gray-200 px-3 py-1 text-sm text-gray-700 hover:bg-gray-300"
 				>
 					취소
