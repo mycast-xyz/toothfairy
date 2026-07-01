@@ -285,6 +285,20 @@
 					result: fileInfo.re
 				});
 			}
+
+			// remakeFiles 객체는 있으나 노멀(ok) 목록이 비어 있는 경우 보정:
+			// 리메이크로 분류되지 않은 STL 파일을 노멀 파일로 취급한다.
+			// (보정하지 않으면 뷰어엔 파일이 뜨는데 "노멀 파일 정보 | 0개"로 표시되는 불일치 발생)
+			if (fileInfo.ok.length === 0 && stlData.length > 0) {
+				const remakeUrls = new Set(fileInfo.re.map((f) => f.url));
+				fileInfo.ok = stlData
+					.filter((file) => !remakeUrls.has(file.url))
+					.map((file) => ({ name: file.name, url: file.url }));
+				debugLog('노멀(ok) 목록이 비어 STL 파일을 노멀로 보정', {
+					normalFiles: fileInfo.ok,
+					remakeFiles: fileInfo.re
+				});
+			}
 		} else {
 			debugLog('리메이크 파일 초기화 조건 불충족', {
 				hasRemakeFiles: !!data.info?.directory?.remakeFiles,
@@ -396,22 +410,35 @@
 		if (fileInfo.ok.length > 0) {
 			const normalFiles = fileInfo.ok.map((file) => file.url);
 			selectedNormalFiles.set(normalFiles);
+			selectedRemakeFiles.set([]);
 			// 첫 번째 노멀 파일을 현재 뷰어 파일로 설정
 			currentViewFile.set(normalFiles[0]);
+			activeViewType = 'normal';
 			debugLog('노멀 파일을 초기 선택으로 설정', normalFiles);
+		} else if (fileInfo.re.length > 0) {
+			// 노멀 파일이 없고 리메이크 파일만 있는 경우: 리메이크 뷰어로 표시.
+			// (노멀로 폴백하면 "노멀 파일 정보 0개"인데 노멀 뷰어에 파일이 뜨는 불일치 발생)
+			const remakeFiles = fileInfo.re.map((file) => file.url);
+			selectedNormalFiles.set([]);
+			selectedRemakeFiles.set(remakeFiles);
+			currentViewFile.set(remakeFiles[0]);
+			activeViewType = 'remake';
+			debugLog('리메이크 파일을 초기 선택으로 설정', remakeFiles);
 		} else if (stlFiles.length > 0) {
-			// 노멀 파일이 없으면 기본 STL 파일들을 선택
+			// 분류 정보가 전혀 없을 때만 STL 전체를 노멀로 폴백
 			selectedNormalFiles.set(stlFiles);
+			selectedRemakeFiles.set([]);
 			// 첫 번째 STL 파일을 현재 뷰어 파일로 설정
 			currentViewFile.set(stlFiles[0]);
+			activeViewType = 'normal';
 			debugLog('기본 STL 파일들을 초기 선택으로 설정', stlFiles);
 		} else {
-			debugLog('선택할 노멀 파일이 없습니다');
+			selectedNormalFiles.set([]);
+			selectedRemakeFiles.set([]);
+			debugLog('선택할 파일이 없습니다');
 		}
 
-		// 리메이크 파일은 빈 배열로 초기화
-		selectedRemakeFiles.set([]);
-		debugLog('리메이크 파일 초기화 완료', []);
+		debugLog('선택 파일 초기화 완료');
 	}
 
 	// 파일 선택 이벤트 핸들러 - 노멀과 리메이크 분리
