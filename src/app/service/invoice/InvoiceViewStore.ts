@@ -119,11 +119,14 @@ export function updateInvoiceMoney(value: number) {
 }
 
 export function updateDeliveryInvoice(value: number) {
-	deliveryInvoice.set(value);
-	// corpInfo의 deliveryInvoice도 함께 업데이트
+	// ⚠️ 순서 중요: corpInfo를 먼저 갱신한 뒤 store.set 해야 함.
+	// deliveryInvoice.set()이 totalPrice(derived)를 동기 재계산하는데, totalPrice는
+	// calculateTotalPrice()로 corpInfo.deliveryInvoice를 읽는다. 먼저 set하면 옛 배송비로 계산되어
+	// 배송비 변경이 청구금액에 반영되지 않는 버그가 있었음.
 	if (invoiceService) {
 		invoiceService.getCorpInfo().deliveryInvoice = value;
 	}
+	deliveryInvoice.set(value);
 }
 
 export function openPdfModal() {
