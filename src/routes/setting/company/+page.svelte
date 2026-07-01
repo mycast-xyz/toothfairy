@@ -160,6 +160,89 @@
 		activeView = 'detail';
 		console.log('activeView 변경됨:', activeView);
 	}
+
+	// 삭제 확인 대상 거래처 (null이면 확인 모달 닫힘)
+	let companyToDelete = $state<any>(null);
+	let isDeleting = $state(false);
+
+	// 삭제 버튼 클릭 → 확인 모달 열기 (즉시 삭제하지 않음)
+	function requestDeleteCompany(company: any) {
+		companyToDelete = company;
+	}
+
+	// 삭제 취소
+	function cancelDeleteCompany() {
+		if (isDeleting) return;
+		companyToDelete = null;
+	}
+
+	// 삭제 확인 → 거래처 삭제 API 호출
+	async function confirmDeleteCompany() {
+		if (!companyToDelete) return;
+
+		try {
+			isDeleting = true;
+
+			// JWT 토큰 가져오기
+			const token = await authService.getJwtToken();
+			if (!token) {
+				showToast('error', '인증 토큰이 없습니다. 다시 로그인해주세요.');
+				return;
+			}
+
+			// ConfigService에서 API 엔드포인트와 백엔드 URL 가져오기
+			const backendUrl = getBackendUrl();
+			const deleteEndpoint = getApiEndpoint('company', 'delete');
+			if (!deleteEndpoint) {
+				showToast('error', 'API 엔드포인트를 찾을 수 없습니다.');
+				return;
+			}
+
+			// 거래처 ID 확인 (여러 가능한 필드명 대응 - CompanyForm과 동일 패턴)
+			const companyId =
+				companyToDelete.id ||
+				companyToDelete.corp_id ||
+				companyToDelete.corpClientId ||
+				companyToDelete.corpClient_id;
+			if (!companyId) {
+				showToast('error', '거래처 ID를 찾을 수 없습니다.');
+				return;
+			}
+
+			// 백엔드 계약: DELETE /api/v0/corp/list/:id (ID는 경로 파라미터, 바디 없음)
+			const fullUrl = `${backendUrl}${deleteEndpoint.replace(':id', companyId)}`;
+
+			const response = await fetch(fullUrl, {
+				method: 'DELETE',
+				headers: {
+					Authorization: 'Bearer ' + token
+				}
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				if (result.success) {
+					showToast('success', '거래처가 성공적으로 삭제되었습니다.');
+					companyToDelete = null;
+					// 삭제된 거래처를 상세/수정 뷰에서 보고 있었다면 목록으로 복귀
+					activeView = 'list';
+					selectedCompany = null;
+					await fetchCompanies(); // 목록 갱신
+				} else {
+					showToast('error', result.message || '거래처 삭제에 실패했습니다.');
+				}
+			} else {
+				const errorData = await response.json().catch(() => ({}));
+				console.error('거래처 삭제 API 오류 응답:', errorData);
+				showToast('error', errorData.message || '거래처 삭제에 실패했습니다.');
+			}
+		} catch (error) {
+			console.error('거래처 삭제 오류:', error);
+			showToast('error', '네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+		} finally {
+			isDeleting = false;
+		}
+	}
 </script>
 
 <main class="ml-64 mt-8 flex-1 bg-gray-100 p-8">
@@ -329,6 +412,7 @@
 												<button
 													class="rounded-lg px-2 py-1 text-gray-500 transition-colors duration-200 hover:bg-gray-100 dark:text-gray-300"
 													aria-label="삭제"
+													onclick={() => requestDeleteCompany(company)}
 												>
 													<i class="ri-delete-bin-line"></i>
 												</button>
@@ -423,6 +507,45 @@
 		</article>
 	</article>
 </main>
+
+<!-- 거래처 삭제 확인 모달 -->
+{#if companyToDelete}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+			<div class="text-center">
+				<div
+					class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100"
+				>
+					<i class="ri-delete-bin-line text-2xl text-red-600"></i>
+				</div>
+				<h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">거래처 삭제 확인</h3>
+				<p class="text-sm text-gray-500 dark:text-gray-400">
+					정말로 거래처 "{companyToDelete.corp_name}"을(를) 삭제하시겠습니까?
+				</p>
+				<p class="mt-2 text-xs text-red-500">이 작업은 되돌릴 수 없습니다.</p>
+			</div>
+			<div class="mt-6 flex items-center justify-end space-x-3">
+				<button
+					type="button"
+					onclick={cancelDeleteCompany}
+					disabled={isDeleting}
+					class="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					취소
+				</button>
+				<button
+					type="button"
+					onclick={confirmDeleteCompany}
+					disabled={isDeleting}
+					class="rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					<i class="ri-delete-bin-line pr-1" class:animate-spin={isDeleting}></i>
+					{isDeleting ? '삭제 중...' : '삭제'}
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style lang="scss">
 	#sidebar {

@@ -165,7 +165,7 @@
 			</li>
 			<li>
 				<a
-					href="/center/invoice"
+					href="/setting/invoice"
 					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
 				>
 					<div
@@ -181,7 +181,7 @@
 			</li>
 			<li>
 				<a
-					href="/center/company"
+					href="/setting/company"
 					class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700"
 				>
 					<div

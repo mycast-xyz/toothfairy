@@ -41,8 +41,8 @@
 		</tr>
 	</thead>
 	<tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-		{#each data.info.dental as item}
-			<!--<tr>
+		{#each data.info?.dental ?? [] as item}
+			<tr>
 				<th
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
@@ -51,14 +51,14 @@
 				<td
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
-					<a href={`/center/invoice/${item.id}?date=${data.param.date}&item=cap`}>
+					<a href={`/setting/invoice/${item.id}?date=${data.param.date}&item=cap`}>
 						<span>출력: {item.invoice.cap.normal}, 리메이크: {item.invoice.cap.remake}</span>
 					</a>
 				</td>
 				<td
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
-					<a href={`/center/invoice/${item.id}?date=${data.param.date}&item=partial`}>
+					<a href={`/setting/invoice/${item.id}?date=${data.param.date}&item=partial`}>
 						<span>출력: {item.invoice.partial.normal}, 리메이크: {item.invoice.partial.remake}</span
 						>
 					</a>
@@ -66,21 +66,21 @@
 				<td
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
-					<a href={`/center/invoice/${item.id}?date=${data.param.date}&item=custom`}>
+					<a href={`/setting/invoice/${item.id}?date=${data.param.date}&item=custom`}>
 						<span>출력: {item.invoice.custom.normal}, 리메이크: {item.invoice.custom.remake}</span>
 					</a>
 				</td>
 				<td
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 				>
-					<a href={`/center/invoice/${item.id}?date=${data.param.date}&item=allonfour`}>
+					<a href={`/setting/invoice/${item.id}?date=${data.param.date}&item=allonfour`}>
 						<span
 							>출력: {item.invoice.allonfour.normal}, 리메이크: {item.invoice.allonfour
 								.remake}</span
 						>
 					</a>
 				</td>
-			</tr>-->
+			</tr>
 		{/each}
 	</tbody>
 </table>

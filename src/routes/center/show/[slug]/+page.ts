@@ -9,6 +9,7 @@ export const load: PageLoad = async ({ url, params }) => {
 
 	let isMobile = false;
 	let data: any = {};
+	let loadError = false;
 	const slug = params.slug;
 
 	console.log('[Page Load] slug:', slug);
@@ -61,8 +62,10 @@ export const load: PageLoad = async ({ url, params }) => {
 			}
 		} else {
 			console.error('[Page Load] 서버 응답 오류:', response.data);
+			loadError = true;
 		}
 	} catch (error) {
+		loadError = true;
 		console.error('[Page Load] API 호출 오류:', error);
 
 		// 에러 상세 정보 출력
@@ -104,6 +107,7 @@ export const load: PageLoad = async ({ url, params }) => {
 	const result = {
 		url: backendUrl,
 		isMobile: isMobile,
+		loadError: loadError,
 		info: data,
 		endpoints: {
 			fileShow: fileShowEndpoint,

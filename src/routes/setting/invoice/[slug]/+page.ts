@@ -1,10 +1,11 @@
 import type { PageLoad } from './$types';
 import axios from 'axios';
+import { configService } from '../../../../app/service/ConfigService';
 // 유틸
 
 // 캐릭터 목록 서비스
 export const load: PageLoad = async ({ params, url }) => {
-	const currentUrl = 'http://' + url.hostname + ':3000';
+	const currentUrl = configService.getBackendUrl();
 	const slug = params.slug;
 	let isMobile = false;
 

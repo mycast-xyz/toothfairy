@@ -31,7 +31,7 @@
 				"create": "/api/v0/corp/list",
 				"add": "/api/v0/corp/add",
 				"update": "/api/v0/corp/list/:id",
-				"delete": "/api/v0/corp/delete"
+				"delete": "/api/v0/corp/list/:id"
 			},
 			"file": {
 				"check": "/api/v0/center/file/chk",

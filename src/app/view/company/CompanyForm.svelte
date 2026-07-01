@@ -651,9 +651,10 @@
 			<div class="flex justify-end">
 				<button
 					type="button"
+					onclick={() => onAddCompany()}
 					class="mr-6 rounded-lg bg-gray-500 px-4 py-2 text-sm font-medium text-white hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-300"
 				>
-					<i class="ri-book-marked-line pr-1 text-base"></i>
+					<i class="ri-close-line pr-1 text-base"></i>
 					취소
 				</button>
 				<button

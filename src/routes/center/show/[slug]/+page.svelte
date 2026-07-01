@@ -561,6 +561,29 @@
 
 <Toast />
 
+{#if data.loadError}
+	<main class="ml-64 flex h-svh flex-1 items-center justify-center bg-gray-100 p-8 pt-20">
+		<div class="flex flex-col items-center rounded-sm border border-gray-200 bg-white p-10 shadow-lg">
+			<i class="ri-error-warning-line mb-4 text-6xl text-gray-400"></i>
+			<h3 class="mb-2 text-2xl font-bold text-gray-800">출력물을 불러오지 못했습니다</h3>
+			<p class="mb-6 text-gray-500">잘못된 주소이거나 일시적인 오류일 수 있습니다.</p>
+			<div class="flex flex-row gap-3">
+				<button
+					class="rounded-lg border border-gray-300 px-5 py-2 text-gray-700 hover:bg-gray-100"
+					onclick={goBack}
+				>
+					뒤로가기
+				</button>
+				<button
+					class="rounded-lg bg-violet-500 px-5 py-2 text-white hover:bg-violet-600"
+					onclick={() => location.reload()}
+				>
+					재시도
+				</button>
+			</div>
+		</div>
+	</main>
+{:else}
 <main class="ml-64 h-svh flex-1 bg-gray-100 p-8 pt-20">
 	<article class=" flex h-full w-full flex-col lg:flex-row">
 		<div class="mr-4 w-full rounded-sm border border-gray-200 bg-white text-lg shadow-lg lg:w-1/3">
@@ -578,7 +601,7 @@
 					<h3 class="my-auto text-xl font-bold text-violet-500">출력물 관리 정보</h3>
 				</div>
 				<div class="patient-name inline-block w-full tracking-tight">
-					<h3 class="pl-2 text-4xl font-bold text-gray-900">{data.info.corpName} 치과 기공소</h3>
+					<h3 class="pl-2 text-4xl font-bold text-gray-900">{data.info.corpName || '-'} 치과 기공소</h3>
 				</div>
 				<div class="patient-content w-full">
 					<div class="privacy mt-3 flex flex-row border-b border-gray-400 pb-3 pl-2">
@@ -587,7 +610,7 @@
 						</div>
 						<div class="gender w-1/2">
 							<p class=" text-gray-600">
-								파일 : {data.info.normalFileNum + data.info.remakeFileNum}개
+								파일 : {(data.info.normalFileNum || 0) + (data.info.remakeFileNum || 0)}개
 							</p>
 						</div>
 					</div>
@@ -859,6 +882,7 @@
 		</div>
 	</article>
 </main>
+{/if}
 
 <style lang="scss">
 </style>
