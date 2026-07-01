@@ -75,6 +75,13 @@ export const MENU_PERMISSIONS: MenuPermission[] = [
 		roles: ['all_center', 'all_admin'],
 		section: '기공센터'
 	},
+	{
+		path: '/center/powder',
+		label: '파우더 관리',
+		icon: 'ri-flask-line',
+		roles: ['all_center', 'all_admin'],
+		section: '기공센터'
+	},
 
 	// 관리 - 관리자만 접근 가능
 	{

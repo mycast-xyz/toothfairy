@@ -92,6 +92,9 @@
 				"save": "/api/v0/pdf/save",
 				"list": "/api/v0/pdf/list",
 				"download": "/api/v0/pdf/download"
+			},
+			"powder": {
+				"units": "/api/v0/powder/units"
 			}
 		}
 	},
