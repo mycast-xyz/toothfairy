@@ -39,6 +39,10 @@
 	let activeTab = 'all'; // 'all', 'received', 'processing', 'completed'
 	let isTabClick = false; // 탭 클릭으로 인한 상태 변경인지 구분
 
+	// 페이지네이션(클라이언트 렌더): 로드된 데이터를 페이지 단위로 잘라 렌더 → 대량에서도 DOM 부담 최소화
+	let currentPage = 1;
+	const pageSize = 50;
+
 	// 서비스 스토어 구독
 	camPrintViewService.selectedItems.subscribe((val) => (selectedItems = val));
 	camPrintViewService.isConnected.subscribe((val) => (isConnected = val));
@@ -90,6 +94,18 @@
 		processing: printListData.filter((item) => item.status === 'processing').length,
 		completed: printListData.filter((item) => item.status === 'completed').length
 	};
+
+	// 페이지네이션 파생값. 데이터가 줄면 현재 페이지를 유효 범위로 보정(소켓 새로고침 시 페이지 튐 방지: 리셋은 검색/탭에서만)
+	$: totalItems = printListData.length;
+	$: totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+	$: if (currentPage > totalPages) currentPage = totalPages;
+	$: if (currentPage < 1) currentPage = 1;
+	$: pageStartIndex = (currentPage - 1) * pageSize;
+	$: pagedList = printListData.slice(pageStartIndex, pageStartIndex + pageSize);
+
+	function goToPage(p: number) {
+		currentPage = Math.min(Math.max(1, p), totalPages);
+	}
 
 	// 옵션 상수들
 	const folderOptions = FOLDER_OPTIONS;
@@ -243,12 +259,14 @@
 	}
 
 	async function filterPrintList() {
+		currentPage = 1; // 검색/탭 변경 시 첫 페이지로
 		await camPrintViewService.filterPrintList();
 	}
 
 	async function clearSearch() {
 		// 탭을 전체로 리셋
 		activeTab = 'all';
+		currentPage = 1;
 		await camPrintViewService.clearSearch();
 	}
 </script>
@@ -578,7 +596,7 @@
 						</thead>
 						{#if printListData.length > 0}
 							<tbody class="divide-y divide-gray-200 bg-white">
-								{#each printListData as item (item.id)}
+								{#each pagedList as item (item.id)}
 									{@const displayFileName = getDisplayFileName(item)}
 									{@const fileExtension = getFileExtension(item)}
 									<tr class="align-top hover:bg-gray-50">
@@ -716,6 +734,48 @@
 						{/if}
 					</table>
 				</div>
+
+				<!-- 페이지네이션: 로드된 항목이 한 페이지를 넘을 때만 노출 -->
+				{#if totalItems > pageSize}
+					<div
+						class="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 px-4 py-3 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400"
+					>
+						<span>
+							{pageStartIndex + 1}–{Math.min(pageStartIndex + pageSize, totalItems)} / 총 {totalItems}개
+						</span>
+						<div class="flex items-center gap-1">
+							<button
+								type="button"
+								class="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:hover:bg-gray-700"
+								onclick={() => goToPage(1)}
+								disabled={currentPage === 1}
+								aria-label="첫 페이지">«</button
+							>
+							<button
+								type="button"
+								class="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:hover:bg-gray-700"
+								onclick={() => goToPage(currentPage - 1)}
+								disabled={currentPage === 1}
+								aria-label="이전 페이지">‹</button
+							>
+							<span class="px-2">{currentPage} / {totalPages}</span>
+							<button
+								type="button"
+								class="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:hover:bg-gray-700"
+								onclick={() => goToPage(currentPage + 1)}
+								disabled={currentPage === totalPages}
+								aria-label="다음 페이지">›</button
+							>
+							<button
+								type="button"
+								class="rounded border border-gray-300 px-2 py-1 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:hover:bg-gray-700"
+								onclick={() => goToPage(totalPages)}
+								disabled={currentPage === totalPages}
+								aria-label="마지막 페이지">»</button
+							>
+						</div>
+					</div>
+				{/if}
 			</div>
 		</article>
 	</article>
