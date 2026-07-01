@@ -31,6 +31,9 @@
 
 <main class="">
 	<article class="pc-main w-full">
+		<div class="mb-4">
+			<HeaderBar {currentStep} />
+		</div>
 		<article class="w-full">
 			{#if currentStep == 1}
 				<HospitalInfo {nextStep} />

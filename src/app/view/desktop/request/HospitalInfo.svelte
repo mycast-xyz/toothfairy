@@ -111,25 +111,6 @@
 			}
 		}
 
-		// 테스트용: F1 키로 스크린샷
-		if (event.key === 'F1') {
-			console.log('F1 키 감지 - 스크린샷 테스트');
-			event.preventDefault();
-			if (stream && !screenshotDataUrl) {
-				console.log('F1 스크린샷 실행');
-				takeScreenshot();
-			}
-		}
-
-		// 테스트용: F2 키로 다시 찍기
-		if (event.key === 'F2') {
-			console.log('F2 키 감지 - 다시 찍기 테스트');
-			event.preventDefault();
-			if (screenshotDataUrl && !showVideo) {
-				console.log('F2 다시 찍기 실행');
-				retakePhoto();
-			}
-		}
 	}
 
 	onDestroy(() => {
@@ -320,20 +301,8 @@
 			return;
 		}
 
-		// 현재까지의 데이터 디버깅 출력
-		console.log('='.repeat(60));
-		console.log('📝 의뢰서 기본 정보 입력 완료');
-		console.log('='.repeat(60));
-
-		const currentData = requestStore.getRequestData();
-		console.log('기본 의뢰서 데이터:', JSON.stringify(currentData, null, 2));
-
-		console.log('='.repeat(60));
-
-		// 성공 토스트 표시
-		toastStore.success('의뢰서 정보가 성공적으로 저장되었습니다.');
-
-		// 다음 단계로 이동
+		// 다음 단계로 이동 (아직 서버 저장 아님 — 최종 제출은 마지막 단계에서 이뤄짐)
+		toastStore.info('다음 단계로 이동합니다.');
 		nextStep();
 	}
 </script>
@@ -462,12 +431,6 @@
 				class="relative mb-4 overflow-hidden rounded-b-lg bg-gray-200"
 				style="aspect-ratio: 16/9;"
 			>
-				<!-- 디버그 정보 -->
-				<div
-					class="absolute left-2 top-2 z-50 rounded bg-black bg-opacity-50 px-2 py-1 text-xs text-white"
-				>
-					showVideo: {showVideo}, hasScreenshot: {!!screenshotDataUrl}
-				</div>
 				{#if errorMessage}
 					<div class="absolute inset-0 flex items-center justify-center">
 						<p class="font-medium text-red-600">{errorMessage}</p>

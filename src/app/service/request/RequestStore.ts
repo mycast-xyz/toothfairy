@@ -48,10 +48,10 @@ const initialRequestInfo: RequestInfo = {
 	requestId: '',
 	patientName: '',
 	deliveryDate: '',
-	dentalClinic: 'test',
+	dentalClinic: '',
 	dentalClinicId: '',
 	screenshotDataUrl: '',
-	screenshotFile: 'test.jpg',
+	screenshotFile: '',
 	requestDetails: '',
 	userUuid: '',
 	referenceImages: []
@@ -237,7 +237,7 @@ export class RequestStore {
 		this.#requestInfo.update((current) => ({
 			...current,
 			screenshotDataUrl: '',
-			screenshotFile: 'test.jpg'
+			screenshotFile: ''
 		}));
 	}
 

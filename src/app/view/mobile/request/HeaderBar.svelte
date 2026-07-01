@@ -1,9 +1,5 @@
 <script lang="ts">
-	import { log } from 'three/tsl';
-
 	export let currentStep: number;
-
-	console.log(currentStep);
 </script>
 
 <nav
