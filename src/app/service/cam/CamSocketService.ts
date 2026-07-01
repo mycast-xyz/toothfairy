@@ -38,6 +38,9 @@ class CamSocketService {
 	private reconnectAttempts = 0;
 	private maxReconnectAttempts = 5;
 	private reconnectInterval = 3000; // 3초
+	// 소켓 파일/폴더 이벤트 폭주 시 REST 재조회를 합치기 위한 디바운스 타이머
+	private refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+	private readonly refreshDebounceMs = 400;
 
 	constructor() {
 		// 브라우저 환경에서만 초기화
@@ -317,8 +320,8 @@ class CamSocketService {
 				return updated;
 			});
 
-			// 최신 리스트 요청
-			this.refreshPrintListFromDB();
+			// 최신 리스트 요청(디바운스로 합침)
+			this.scheduleRefreshPrintList();
 		});
 
 		// 통합 폴더 모니터링 중지 알림
@@ -349,8 +352,8 @@ class CamSocketService {
 				}));
 			}
 
-			// 최신 리스트 요청
-			this.refreshPrintListFromDB();
+			// 최신 리스트 요청(디바운스로 합침)
+			this.scheduleRefreshPrintList();
 		});
 
 		// 개별 폴더 모니터링 중지 알림
@@ -371,8 +374,8 @@ class CamSocketService {
 		this.socket.on('folder-changed', (data) => {
 			console.log('📁 [소켓] folder-changed 이벤트 수신:', data);
 			folderMonitorNotification.set(`폴더 변경이 감지되었습니다: ${data.folderType}`);
-			console.log('📁 [소켓] refreshPrintListFromDB 호출');
-			this.refreshPrintListFromDB();
+			console.log('📁 [소켓] 리스트 재조회 예약(디바운스)');
+			this.scheduleRefreshPrintList();
 		});
 
 		// 파일 이벤트 처리 (백엔드에서 보내는 파일 생성/수정/삭제 이벤트)
@@ -421,8 +424,8 @@ class CamSocketService {
 			}
 
 			// 파일 이벤트 발생 시 출력물 리스트 새로고침
-			console.log('📊 [소켓] 파일 이벤트로 인한 refreshPrintListFromDB 호출');
-			this.refreshPrintListFromDB();
+			console.log('📊 [소켓] 파일 이벤트 → 리스트 재조회 예약(디바운스)');
+			this.scheduleRefreshPrintList();
 		});
 
 		// 통합 파일 이벤트 처리 (unified-file-event)
@@ -459,8 +462,8 @@ class CamSocketService {
 			);
 
 			// 파일 이벤트 발생 시 출력물 리스트 새로고침
-			console.log('📊 [소켓] 통합 파일 이벤트로 인한 refreshPrintListFromDB 호출');
-			this.refreshPrintListFromDB();
+			console.log('📊 [소켓] 통합 파일 이벤트 → 리스트 재조회 예약(디바운스)');
+			this.scheduleRefreshPrintList();
 		});
 
 		// 폴더 변경 배치 이벤트 처리 (folder-changes-batch)
@@ -521,8 +524,8 @@ class CamSocketService {
 			folderMonitorNotification.set(notificationMessage);
 
 			// 배치 이벤트 발생 시 출력물 리스트 새로고침
-			console.log('📊 [소켓] 배치 파일 이벤트로 인한 refreshPrintListFromDB 호출');
-			this.refreshPrintListFromDB();
+			console.log('📊 [소켓] 배치 파일 이벤트 → 리스트 재조회 예약(디바운스)');
+			this.scheduleRefreshPrintList();
 		});
 	}
 
@@ -755,6 +758,18 @@ class CamSocketService {
 				`⚠️ 소켓이 연결되지 않아 ${folderType} 폴더 모니터링 중지 요청을 보낼 수 없습니다.`
 			);
 		}
+	}
+
+	// 소켓 파일/폴더 이벤트로 인한 리스트 재조회를 디바운스로 합친다.
+	// (짧은 시간에 여러 이벤트가 오면 마지막 한 번만 REST 재조회 → 깜빡임·부하 감소)
+	private scheduleRefreshPrintList() {
+		if (this.refreshDebounceTimer) {
+			clearTimeout(this.refreshDebounceTimer);
+		}
+		this.refreshDebounceTimer = setTimeout(() => {
+			this.refreshDebounceTimer = null;
+			this.refreshPrintListFromDB();
+		}, this.refreshDebounceMs);
 	}
 
 	// 폴더 모니터링 데이터 새로고침 (API에서 데이터 가져오기)
