@@ -322,16 +322,18 @@
 			</div>
 		{/if}
 
-		<!--
-		따로 써야 될 경우를 대비해서 남겨둠
-    <button
-			onclick={downloadSelectedFiles}
-			class="rounded bg-green-500 px-3 py-3 text-xs text-white hover:bg-green-600"
-			disabled={selectedItems.length === 0}
-		>
-			선택 다운로드
-		</button>
-    -->
+		<!-- 선택 다운로드: 체크된 항목이 있을 때만 노출 (여러 파일 ZIP 다운로드) -->
+		{#if selectedItems.length > 0}
+			<div class="mb-2 flex justify-end">
+				<button
+					type="button"
+					onclick={downloadSelectedFiles}
+					class="rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 focus:outline-none focus:ring-4 focus:ring-green-300 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-900"
+				>
+					<i class="ri-download-2-line pr-1"></i>선택 다운로드 ({selectedItems.length})
+				</button>
+			</div>
+		{/if}
 
 		<!-- 실시간 출력물 목록 -->
 		<article class="print-list">

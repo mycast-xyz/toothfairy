@@ -178,7 +178,7 @@ class ConfigService {
 				},
 				socket: {
 					host: 'localhost',
-					port: 8080,
+					port: 30090,
 					protocol: 'ws',
 					baseUrl: 'ws://localhost:30090'
 				},

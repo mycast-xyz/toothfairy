@@ -32,7 +32,7 @@ export function getCurrentSocketUrl(): string {
 		console.warn('ConfigService에서 소켓 URL을 가져올 수 없어 기본값을 사용합니다:', error);
 	}
 
-	return 'ws://localhost:8080';
+	return 'ws://localhost:30090';
 }
 
 /**

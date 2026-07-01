@@ -172,21 +172,20 @@ export async function downloadCamFilesAsZip(fileIds: string[]): Promise<void> {
 
 		const url = `${backendBaseUrl}${multiDownloadEndpoint}`;
 
-		console.log('⬇️ CAM 파일 멀티 다운로드 API 호출:', url, '파일 개수:', fileIds.length);
+		// 백엔드는 GET + 반복 ids 쿼리(?ids=1&ids=2)로 읽는다(req.query.ids).
+		// (기존엔 POST body {fileIds}로 보내 라우트/파라미터가 불일치했음 — UI 주석 상태라 표면화 안 됐음)
+		const idsQuery = fileIds.map((id) => `ids=${encodeURIComponent(id)}`).join('&');
+		const fullUrl = `${url}?${idsQuery}`;
+
+		console.log('⬇️ CAM 파일 멀티 다운로드 API 호출:', fullUrl, '파일 개수:', fileIds.length);
 
 		const token = await authService.getJwtToken();
-		const response = await axios.post(
-			url,
-			{ fileIds },
-			{
-				responseType: 'blob',
-				withCredentials: true,
-				headers: {
-					'Content-Type': 'application/json',
-					Authorization: `Bearer ${token}`
-				}
-			}
-		);
+		const response = await axios.get(fullUrl, {
+			responseType: 'blob',
+			withCredentials: true,
+			// 토큰 있으면 Bearer, 없으면 쿠키 폴백('Bearer null' 방지)
+			headers: token ? { Authorization: `Bearer ${token}` } : {}
+		});
 
 		console.log('📄 ZIP 다운로드 응답 헤더:', response.headers);
 
