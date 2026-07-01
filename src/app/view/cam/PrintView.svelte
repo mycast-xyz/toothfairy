@@ -86,9 +86,8 @@
 	// 전체 선택 상태 계산
 	$: allSelected = printListData.length > 0 && selectedItems.length === printListData.length;
 
-	// 탭 카운트를 반응형으로 계산.
-	// (기존 {getTabCount('all')}는 함수 호출이라 Svelte가 printListData 의존성을 추적 못 해
-	//  목록이 갱신돼도 배지가 0으로 고정되는 버그가 있었음)
+	// 탭 카운트는 항상 "전체 로드된 데이터"(printListData) 기준으로 계산 → 어느 탭에 있어도
+	// 상태별 총계를 정확히 표시(서버가 항상 전체 상태를 반환하므로 필터 후에도 유지).
 	$: tabCounts = {
 		all: printListData.length,
 		received: printListData.filter((item) => item.status === 'received').length,
@@ -96,13 +95,19 @@
 		completed: printListData.filter((item) => item.status === 'completed').length
 	};
 
-	// 페이지네이션 파생값. 데이터가 줄면 현재 페이지를 유효 범위로 보정(소켓 새로고침 시 페이지 튐 방지: 리셋은 검색/탭에서만)
-	$: totalItems = printListData.length;
+	// 현재 탭에 해당하는 항목만 클라이언트에서 필터(서버 재조회 없음)
+	$: tabFilteredList =
+		activeTab === 'all'
+			? printListData
+			: printListData.filter((item) => item.status === activeTab);
+
+	// 페이지네이션 파생값(탭 필터된 리스트 기준). 데이터가 줄면 현재 페이지를 유효 범위로 보정.
+	$: totalItems = tabFilteredList.length;
 	$: totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
 	$: if (currentPage > totalPages) currentPage = totalPages;
 	$: if (currentPage < 1) currentPage = 1;
 	$: pageStartIndex = (currentPage - 1) * pageSize;
-	$: pagedList = printListData.slice(pageStartIndex, pageStartIndex + pageSize);
+	$: pagedList = tabFilteredList.slice(pageStartIndex, pageStartIndex + pageSize);
 
 	function goToPage(p: number) {
 		currentPage = Math.min(Math.max(1, p), totalPages);
@@ -120,34 +125,12 @@
 	}
 
 	// 탭 클릭 핸들러
+	// 상태 필터는 서버 재조회 대신 클라이언트에서 처리한다.
+	// (서버가 항상 전체 상태를 반환 → 탭 배지가 상태별 총계를 유지하고, 탭 전환도 즉시)
 	function handleTabClick(tab: string) {
 		if (activeTab === tab) return; // 이미 선택된 탭이면 무시
-
-		// 탭 클릭으로 인한 변경임을 표시
-		isTabClick = true;
 		activeTab = tab;
-		console.log('📂 탭 변경:', tab);
-
-		// 탭에 따른 상태 필터 적용
-		switch (tab) {
-			case 'all':
-				camPrintViewService.statusFilter.set('');
-				break;
-			case 'received':
-				camPrintViewService.statusFilter.set('received');
-				break;
-			case 'processing':
-				camPrintViewService.statusFilter.set('processing');
-				break;
-			case 'completed':
-				camPrintViewService.statusFilter.set('completed');
-				break;
-			default:
-				camPrintViewService.statusFilter.set('');
-		}
-
-		// 필터링 실행
-		filterPrintList();
+		currentPage = 1; // 탭 변경 시 첫 페이지로
 	}
 
 
@@ -623,7 +606,7 @@
 								</th>
 							</tr>
 						</thead>
-						{#if printListData.length > 0}
+						{#if tabFilteredList.length > 0}
 							<tbody class="divide-y divide-gray-200 bg-white">
 								{#each pagedList as item (item.id)}
 									{@const displayFileName = getDisplayFileName(item)}
