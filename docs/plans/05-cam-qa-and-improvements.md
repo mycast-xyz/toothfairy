@@ -71,8 +71,10 @@
 
 | **A4**(취소 버튼) | 방향① 채택 — 死 '취소' 버튼 + stopPrint 死 체인(PrintView/CamPrintView/CamSocketService) 전체 제거 | pnpm check 통과 |
 
-> 커밋: 프론트 `8923dfa`·`e25ad0d`·`9b9256a`·`ef73bbb`, 백엔드 `6f6c058`.
-> **후속(원하면 별도 요청)**: 잘못 들어온 항목을 목록에서 **삭제**하는 기능은 백엔드 삭제 엔드포인트(인증+확인)가 필요한 신규 기능. 완료 되돌리기(revert)도 동일.
+| **항목 삭제**(A4 후속·신규) | 잘못 들어온 항목 소프트 삭제 — 백엔드 `POST /cam/data/delete`(인증, status='deleted') + 목록 'deleted' 제외, 프론트 행별 삭제 버튼 + 확인 | API 실측: 무인증 401·인증 ok·status=deleted·목록 제외 |
+
+> 커밋: 프론트 `8923dfa`·`e25ad0d`·`9b9256a`·`ef73bbb`·`63a1a34`, 백엔드 `6f6c058`·`63e04a4`.
+> 소프트 삭제라 물리 파일/원본은 보존(status='deleted'). 완료 되돌리기(revert)는 아직 미구현(원하면 유사 방식으로 추가 가능).
 
 ---
 
