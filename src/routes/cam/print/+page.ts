@@ -18,8 +18,10 @@ export const load: PageLoad = async ({ data }) => {
 
 		if (!config || !configLoaded) {
 			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
-			// 기본 URL 사용
-			const response = await axios.get('http://localhost:3000/api/v0/cam/data/receipts');
+			// 기본 URL 사용 (withCredentials: 인증 쿠키 전송 — receipts는 인증 필요)
+			const response = await axios.get('http://localhost:3000/api/v0/cam/data/receipts', {
+				withCredentials: true
+			});
 			if (response.status === 200) {
 				const apiData = response.data;
 				// API 응답 구조에 맞게 수정
@@ -47,8 +49,8 @@ export const load: PageLoad = async ({ data }) => {
 
 			console.log('🔗 CAM Print API 호출:', fullUrl);
 
-			// HTTP API에서 초기 출력물 데이터 가져오기
-			const response = await axios.get(fullUrl);
+			// HTTP API에서 초기 출력물 데이터 가져오기 (withCredentials: 인증 쿠키 전송)
+			const response = await axios.get(fullUrl, { withCredentials: true });
 			if (response.status === 200) {
 				const apiData = response.data;
 				// API 응답 구조에 맞게 수정

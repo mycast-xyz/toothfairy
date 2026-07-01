@@ -419,7 +419,9 @@ export class CamPrintViewService {
 			const filterParams: CamFilterParams = {};
 
 			if (searchQuery.trim()) {
-				filterParams.title = searchQuery.trim();
+				// 파일명 검색은 filename 파라미터로 전송(백엔드에서 파일명 필드 매칭).
+				// (기존엔 title로 보내 카테고리 필드와 충돌·덮어써지는 버그가 있었음)
+				filterParams.filename = searchQuery.trim();
 			}
 			if (statusFilter) {
 				filterParams.status = statusFilter;
@@ -428,7 +430,7 @@ export class CamPrintViewService {
 				filterParams.folderType = folderFilter;
 			}
 			if (categoryFilter) {
-				filterParams.title = categoryFilter; // 카테고리 필터를 title 파라미터로 전송
+				filterParams.title = categoryFilter; // 카테고리 필터는 title 파라미터(카테고리/폴더 필드)
 			}
 			if (startDate) {
 				filterParams.startDate = startDate;

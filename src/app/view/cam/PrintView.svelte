@@ -701,10 +701,10 @@
 						{:else}
 							<tbody class="rounded-lg border border-gray-200 bg-white p-8 text-center">
 								<tr>
-									<td colspan="8" class="text-gray-500">
+									<td colspan="9" class="text-gray-500">
 										<p class="py-10 text-gray-500">
 											{isConnected
-												? '현재 출력 대기 중인 작업이 없습니다.'
+												? '해당 조건에 수신된 출력물이 없습니다. 날짜를 선택해 다른 기간을 조회해 보세요.'
 												: '데이터를 불러오는 중...'}
 										</p>
 									</td>

@@ -53,11 +53,11 @@ export async function fetchCamPrintListFromApi(filterParams?: CamFilterParams) {
 		console.log('🔗 CAM Print API 호출:', endpoint, '필터:', filterParams);
 
 		const token = await authService.getJwtToken();
+		// 토큰이 있으면 Bearer 헤더로, 없으면 헤더 생략 → 서버가 httpOnly 쿠키로 인증 폴백.
+		// ('Bearer null'을 보내면 서버가 쿠키 폴백을 못 하고 401이 되므로 조건부로 붙인다.)
 		const response = await axios.get(endpoint, {
 			withCredentials: true,
-			headers: {
-				Authorization: `Bearer ${token}`
-			}
+			headers: token ? { Authorization: `Bearer ${token}` } : {}
 		});
 
 		const apiData = response.data;
