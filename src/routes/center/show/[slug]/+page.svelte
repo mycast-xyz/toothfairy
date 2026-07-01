@@ -189,8 +189,22 @@
 		re: [] as RemakeFile[]
 	});
 
-	let normalUnitNum = $state(data.info?.normalUnitNum || 0);
-	let remakeUnitNum = $state(data.info?.remakeUnitNum || 0);
+	let normalUnitNum = $state(data.info?.normalUnitNum ?? 0);
+	let remakeUnitNum = $state(data.info?.remakeUnitNum ?? 0);
+
+	// 저장(수정) 처리 중 중복 클릭 방지 플래그
+	let savingType = $state<'normal' | 'remake' | null>(null);
+
+	// 상단 "유닛 갯수" 박스에 표시할 실제 유닛 합계 (정상 + 리메이크)
+	let totalUnitNum = $derived((Number(normalUnitNum) || 0) + (Number(remakeUnitNum) || 0));
+
+	// 유닛 입력값 검증: 빈값/비정수/음수 거부
+	const validateUnitValue = (value: unknown): number | null => {
+		if (value === '' || value === null || value === undefined) return null;
+		const num = Number(value);
+		if (!Number.isInteger(num) || num < 0) return null;
+		return num;
+	};
 
 	// 리메이크 파일 매칭 처리 함수
 	function initializeRemakeFiles() {
@@ -461,7 +475,21 @@
 
 		const backendUrl = data.url;
 
+		// 중복 클릭(저장 처리 중) 방지
+		if (savingType) {
+			debugLog('저장 처리 중이므로 중복 요청 무시', { savingType });
+			return;
+		}
+
 		if (response === 'normal') {
+			const validated = validateUnitValue(normalUnitNum);
+			if (validated === null) {
+				showToast('error', '정상 유닛 수는 0 이상의 정수로 입력해주세요.');
+				return;
+			}
+			normalUnitNum = validated;
+
+			savingType = 'normal';
 			try {
 				const apiUrl = `${backendUrl}${data.endpoints.dataCreateOk}`;
 				debugLog('정상 유닛 API 호출', { apiUrl, normalUnitNum, centerIdx: data.info.id });
@@ -489,8 +517,18 @@
 				debugLog('API 호출 중 오류', error);
 				console.error('서버 연결 중 오류가 발생했습니다.', error);
 				showToast('error', '처리 중 오류가 발생했습니다.');
+			} finally {
+				savingType = null;
 			}
 		} else if (response === 'remake') {
+			const validated = validateUnitValue(remakeUnitNum);
+			if (validated === null) {
+				showToast('error', '리메이크 유닛 수는 0 이상의 정수로 입력해주세요.');
+				return;
+			}
+			remakeUnitNum = validated;
+
+			savingType = 'remake';
 			try {
 				const apiUrl = `${backendUrl}${data.endpoints.dataCreateRe}`;
 				debugLog('리메이크 유닛 API 호출', { apiUrl, remakeUnitNum, centerIdx: data.info.id });
@@ -518,6 +556,8 @@
 				debugLog('API 호출 중 오류', error);
 				console.error('서버 연결 중 오류가 발생했습니다.', error);
 				showToast('error', '처리 중 오류가 발생했습니다.');
+			} finally {
+				savingType = null;
 			}
 		}
 	};
@@ -623,7 +663,7 @@
 							class="ml-auto mr-5 inline-block h-20 w-1/2 bg-violet-500 p-3 tracking-tight text-white"
 						>
 							<p class=" text-sm">유닛 갯수</p>
-							<h3 class="text-4xl font-bold">추가 필요</h3>
+							<h3 class="text-4xl font-bold">{totalUnitNum}</h3>
 						</div>
 					</div>
 					<div
@@ -638,10 +678,13 @@
 								정상 유닛
 							</p>
 							<input
-								type="text"
+								type="number"
+								inputmode="numeric"
+								min="0"
+								step="1"
 								bind:value={normalUnitNum}
-								class=" h-18 w-3/4 border-none bg-gray-100 text-2xl font-bold"
-								placeholder="추가 필요"
+								class="h-18 mx-2 my-auto w-3/4 rounded-md border border-gray-300 bg-white px-3 text-2xl font-bold text-gray-800 focus:border-violet-500 focus:outline-none"
+								placeholder="0"
 							/>
 						</div>
 
@@ -649,9 +692,10 @@
 							onclick={() => {
 								handleApiResponse('normal');
 							}}
-							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white"
+							disabled={savingType === 'normal'}
+							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white disabled:cursor-not-allowed disabled:opacity-60"
 						>
-							<h3 class="text-2xl font-bold">수정</h3>
+							<h3 class="text-2xl font-bold">{savingType === 'normal' ? '저장중' : '수정'}</h3>
 						</button>
 					</div>
 					<div
@@ -666,10 +710,13 @@
 								리메이크 유닛
 							</p>
 							<input
-								type="text"
+								type="number"
+								inputmode="numeric"
+								min="0"
+								step="1"
 								bind:value={remakeUnitNum}
-								class=" h-18 w-3/4 border-none bg-gray-100 text-2xl font-bold"
-								placeholder="추가 필요"
+								class="h-18 mx-2 my-auto w-3/4 rounded-md border border-gray-300 bg-white px-3 text-2xl font-bold text-gray-800 focus:border-violet-500 focus:outline-none"
+								placeholder="0"
 							/>
 						</div>
 
@@ -677,9 +724,10 @@
 							onclick={() => {
 								handleApiResponse('remake');
 							}}
-							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white"
+							disabled={savingType === 'remake'}
+							class="h-18 ml-auto inline-block w-1/5 bg-violet-500 p-3 tracking-tight text-white disabled:cursor-not-allowed disabled:opacity-60"
 						>
-							<h3 class="text-2xl font-bold">수정</h3>
+							<h3 class="text-2xl font-bold">{savingType === 'remake' ? '저장중' : '수정'}</h3>
 						</button>
 					</div>
 				</div>

@@ -8,10 +8,8 @@
 
 	const { data } = $props<{ data: any }>();
 
-	console.log(data.info);
-
-	// 탭 상태 관리
-	let activeTab = writable('dentistry'); // 'dentistry' 또는 'lab'
+	// 탭 상태 관리 - 검색 후 리로드 시 URL의 tab 파라미터로 이전 탭 복원
+	let activeTab = writable(data.param?.tab || 'dentistry'); // 'dentistry' 또는 'lab'
 
 	// 날짜 초기화 함수
 	function initializeDate() {

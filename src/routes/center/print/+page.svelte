@@ -184,20 +184,6 @@
 		loadData();
 	});
 
-	// 정렬 처리
-	let currentSort = writable({
-		column: data.info, // 초기 정렬 컬럼
-		direction: 'asc',
-		isAsc: {
-			date: true,
-			company: true,
-			type: true,
-			fileCount: true,
-			unitCount: true,
-			fileName: true
-		}
-	});
-
 	// 출력물 종류 처리
 	function getColorAndName(info: string) {
 		const typeMap: Record<string, { color: string; name: string }> = {
@@ -545,79 +531,48 @@
 									<tr>
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											<span>날짜</span>
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.date}
-												class:ri-sort-desc={!$currentSort.isAsc.date}
-											></i>
 										</th>
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											<span>회사</span>
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.company}
-												class:ri-sort-desc={!$currentSort.isAsc.company}
-											></i>
 										</th>
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											<span>확인</span>
-											<i class="float-right ml-auto"></i>
 										</th>
 										<th
 											scope="col"
-											class="cursor-pointer px-12 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-12 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											출력물 종류
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.type}
-												class:ri-sort-desc={!$currentSort.isAsc.type}
-											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											출력 파일 갯수
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.fileCount}
-												class:ri-sort-desc={!$currentSort.isAsc.fileCount}
-											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											출력 유닛 갯수
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.unitCount}
-												class:ri-sort-desc={!$currentSort.isAsc.unitCount}
-											></i>
 										</th>
 
 										<th
 											scope="col"
-											class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
+											class="px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"
 										>
 											파일 명
-											<i
-												class="float-right ml-auto"
-												class:ri-sort-asc={$currentSort.isAsc.fileName}
-												class:ri-sort-desc={!$currentSort.isAsc.fileName}
-											></i>
 										</th>
 										<th scope="col" class="relative px-4 py-3.5">
 											<span class="sr-only">Edit</span>
@@ -653,6 +608,20 @@
 													</p>
 													<p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
 														다른 날짜를 선택하거나 검색 조건을 변경해보세요.
+													</p>
+												</div>
+											</td>
+										</tr>
+									{:else if filteredData.length === 0}
+										<tr>
+											<td colspan="8" class="py-12 text-center">
+												<div class="flex flex-col items-center justify-center">
+													<i class="ri-filter-off-line mb-4 text-4xl text-gray-400"></i>
+													<p class="text-lg font-medium text-gray-600 dark:text-gray-400">
+														조건에 맞는 출력물이 없습니다.
+													</p>
+													<p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
+														탭이나 상태 필터를 변경해보세요.
 													</p>
 												</div>
 											</td>

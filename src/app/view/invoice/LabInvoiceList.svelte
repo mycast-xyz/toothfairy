@@ -2,7 +2,7 @@
 	// 기공소 청구서 리스트 컴포넌트
 	export let data: any;
 
-	console.log(data.info);
+	$: labList = data.info?.lab ?? [];
 </script>
 
 <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -50,7 +50,17 @@
 		</tr>
 	</thead>
 	<tbody class="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
-		{#each data.info.lab as item}
+		{#if labList.length === 0}
+			<tr>
+				<td
+					colspan="6"
+					class="px-4 py-8 text-center text-sm font-normal text-gray-500 dark:text-gray-400"
+				>
+					해당 기간의 기공소 청구서 내역이 없습니다.
+				</td>
+			</tr>
+		{/if}
+		{#each labList as item}
 			<tr>
 				<th
 					class="cursor-pointer px-4 py-3.5 text-left text-sm font-normal text-gray-500 dark:text-gray-400 rtl:text-right"

@@ -12,6 +12,8 @@ export const load: PageLoad = async ({ url }) => {
 	let data: any = { lab: [], dental: [] };
 	const dateParam = url.searchParams.get('date');
 	const corpNameParam = url.searchParams.get('corpName') || '';
+	// 검색 후에도 선택된 탭을 유지하기 위해 tab 파라미터를 읽어 복원
+	const tabParam = url.searchParams.get('tab') || 'dentistry';
 
 	const today = new Date();
 	const yyyy = today.getFullYear();
@@ -55,7 +57,8 @@ export const load: PageLoad = async ({ url }) => {
 		info: data,
 		param: {
 			date: date,
-			corpName: corpNameParam
+			corpName: corpNameParam,
+			tab: tabParam
 		}
 	};
 };

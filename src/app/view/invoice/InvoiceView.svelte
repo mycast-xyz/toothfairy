@@ -26,16 +26,26 @@
 	} from '../../service/invoice/InvoiceViewStore';
 
 	// ===== PROPS =====
-	const { data, pageType = InvoicePageType.CAP } = $props<{
+	const {
+		data,
+		pageType = InvoicePageType.CAP,
+		typeLabel = ''
+	} = $props<{
 		data: any;
 		pageType?: InvoicePageType;
+		typeLabel?: string;
 	}>();
 
 	// ===== SERVICE INITIALIZATION =====
 	initializeInvoiceStore(data, pageType);
 	const invoiceService = getInvoiceService();
 	const calendarData = invoiceService?.getCalendarData() || [];
-	const [year, month] = (data.param?.date || '2024-01').split('-').map(Number);
+
+	// 날짜 미지정 시 더미(2024-01) 대신 현재 연-월을 폴백으로 사용
+	const now = new Date();
+	const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+	const invoiceDate = data.param?.date || currentYearMonth;
+	const [year, month] = invoiceDate.split('-').map(Number);
 
 	// ===== EVENT HANDLERS =====
 	function handlePdfRenderComplete(success: boolean, error?: string) {
@@ -108,6 +118,9 @@
 
 	const currentConfig = config[pageType as keyof typeof config];
 
+	// 상세 헤더 제목: 청구서 종류 라벨이 있으면 표시(예: '캡 청구서'), 없으면 기본 '청구서'
+	const headerTitle = typeLabel || currentConfig.title;
+
 	// ===== HELPER FUNCTIONS =====
 	// getTableHeaders는 이제 스토어에서 가져옴
 </script>
@@ -115,7 +128,7 @@
 <main class="ml-64 mt-8 min-h-screen flex-1 bg-gray-100 p-8">
 	<article class="w-full pl-3 pr-5 pt-3">
 		<PageHeaderBar
-			title={currentConfig.title}
+			title={headerTitle}
 			description="청구서 저장 및 pdf 다운로드 페이지입니다."
 		>
 			<div class="flex flex-wrap items-center gap-2">
@@ -175,18 +188,17 @@
 				<div class="flex justify-between">
 					<div>
 						<h1 class=" text-4xl font-semibold text-gray-800 dark:text-neutral-200 md:text-3xl">
-							{currentConfig.title}
+							{headerTitle}
 						</h1>
 					</div>
 					<!-- Col -->
 					<div class="text-end">
 						<span
 							class="mt-1 block text-gray-500 dark:text-neutral-500"
-							data-date={data.param?.date || '2024-01'}
+							data-date={invoiceDate}
 							data-company-name={$corpInfo?.corp_name || 'company'}
 							data-item={data.param?.item || 'item'}
-							>#{data.param?.date || '2024-01'}-{$corpInfo?.corp_name || 'company'}-{data.param
-								?.item || 'item'}</span
+							>#{invoiceDate}-{$corpInfo?.corp_name || 'company'}-{data.param?.item || 'item'}</span
 						>
 					</div>
 					<!-- Col -->
@@ -204,7 +216,7 @@
 							건　명 : <strong>{year}년 {month}월 청구서</strong>
 						</p>
 						<p class="pb-2 text-base font-normal text-gray-800">
-							일　자 : <strong>{data.param?.date || '2024-01'}</strong>
+							일　자 : <strong>{invoiceDate}</strong>
 						</p>
 						<div class="flex bg-violet-700 p-4 text-white">
 							<h1 class="text-left text-2xl font-bold text-white">
