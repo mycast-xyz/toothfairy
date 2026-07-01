@@ -3,9 +3,9 @@
   export let description: string = '';
 </script>
 
-<div class="flex items-center justify-between rounded-lg px-4 py-6">
+<div class="flex items-center justify-between rounded-lg px-4 py-3">
   <div class="flex flex-col">
-    <h2 class="text-3xl font-extrabold text-violet-500 leading-tight">{title}</h2>
+    <h2 class="text-2xl font-extrabold text-violet-500 leading-tight">{title}</h2>
     {#if description}
       <span class="mt-1 text-sm font-medium text-gray-500">{description}</span>
     {/if}
