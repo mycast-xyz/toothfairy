@@ -261,9 +261,9 @@
 			<!-- CAM 실시간 연결 상태 표시 (아이콘 형태로 개선) -->
 			<div class="mb-1 ml-auto flex items-center gap-2">
 				{#if isConnected}
-					<span class="text-bas3 pt-2 text-green-700">실시간 연결됨</span>
+					<span class="text-sm pt-2 text-green-700">실시간 연결됨</span>
 				{:else}
-					<span class="text-bas3 pt-2 text-red-600">연결 중...</span>
+					<span class="text-sm pt-2 text-red-600">연결 중...</span>
 				{/if}
 			</div>
 			<button
@@ -297,7 +297,7 @@
 				class="rounded bg-orange-500 px-3 py-3 text-xs text-white hover:bg-orange-600"
 			>
 				<i class="ri-database-line pr-1 text-base"></i>
-				백업 초기화
+				작업 폴더 초기화
 			</button>
 		</div>
 	</PageHeaderBar>
@@ -669,7 +669,12 @@
 											</span>
 										</td>
 										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-											{item.receivedAt ? new Date(item.receivedAt).toLocaleTimeString() : '-'}
+											{item.receivedAt
+												? new Date(item.receivedAt).toLocaleString('ko-KR', {
+														dateStyle: 'short',
+														timeStyle: 'short'
+													})
+												: '-'}
 										</td>
 										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
 											{#if item.status === 'processing'}
@@ -677,7 +682,7 @@
 													onclick={() => startPrintJob(item.id)}
 													class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
 												>
-													완료
+													가공완료 처리
 												</button>
 											{:else if item.status === 'completed'}
 												<button
