@@ -50,7 +50,8 @@
 						"single": "/api/v0/cam/data/download/single",
 						"multi": "/api/v0/cam/data/download/multi"
 					},
-					"complete": "/api/v0/cam/data/complete"
+					"complete": "/api/v0/cam/data/complete",
+					"delete": "/api/v0/cam/data/delete"
 				},
 				"progress": "/api/v0/cam/data/progress"
 			},

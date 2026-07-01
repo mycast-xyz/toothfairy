@@ -216,6 +216,12 @@
 		await camPrintViewService.startPrintJob(fileId);
 	}
 
+	// 잘못 들어온 항목 삭제(확인 후 소프트 삭제 → 목록에서 숨김)
+	async function deleteFile(fileId: string) {
+		if (!confirm('이 항목을 목록에서 삭제하시겠습니까?')) return;
+		await camPrintViewService.deleteFile(fileId);
+	}
+
 	async function downloadFile(fileId: string) {
 		await camPrintViewService.downloadFile(fileId);
 	}
@@ -673,16 +679,24 @@
 												: '-'}
 										</td>
 										<td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-											{#if item.status === 'processing'}
+											<div class="flex items-center gap-2">
+												{#if item.status === 'processing'}
+													<button
+														onclick={() => startPrintJob(item.id)}
+														class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
+													>
+														가공완료 처리
+													</button>
+												{/if}
 												<button
-													onclick={() => startPrintJob(item.id)}
-													class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
+													onclick={() => deleteFile(item.id)}
+													class="rounded bg-gray-100 px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600"
+													title="잘못 들어온 항목 삭제"
+													aria-label="항목 삭제"
 												>
-													가공완료 처리
+													<i class="ri-delete-bin-line"></i>
 												</button>
-											{:else}
-												-
-											{/if}
+											</div>
 										</td>
 									</tr>
 								{/each}

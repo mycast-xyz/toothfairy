@@ -259,6 +259,45 @@ export async function completeCamFileById(fileId: string | number): Promise<void
 }
 
 /**
+ * CAM 파일 수신 기록 소프트 삭제(잘못 들어온 항목을 목록에서 숨김).
+ * 실패 시 예외를 던져 호출부가 처리하게 한다.
+ * @param fileId 삭제할 receipt id
+ */
+export async function deleteCamFileById(fileId: string | number): Promise<void> {
+	try {
+		const config = configService.getConfig();
+		if (!config) {
+			throw new Error('설정 정보를 불러올 수 없습니다.');
+		}
+		const backendBaseUrl = config.server.backend.baseUrl;
+		const deleteEndpoint =
+			config.api.endpoints.cam.data.delete || '/api/v0/cam/data/delete';
+		const url = `${backendBaseUrl}${deleteEndpoint}`;
+
+		const token = await authService.getJwtToken();
+		// 토큰 있으면 Bearer, 없으면 쿠키 폴백('Bearer null' 방지)
+		const response = await axios.post(
+			url,
+			{ fileId },
+			{
+				withCredentials: true,
+				headers: token
+					? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+					: { 'Content-Type': 'application/json' }
+			}
+		);
+
+		if (response.data?.status !== 'ok') {
+			throw new Error(response.data?.message || '항목 삭제 중 오류가 발생했습니다.');
+		}
+	} catch (error: any) {
+		console.error('❌ CAM 항목 삭제 오류:', error);
+		const msg = error?.response?.data?.message || error.message || '항목 삭제에 실패했습니다.';
+		throw new Error(msg);
+	}
+}
+
+/**
  * CAM 진행률 데이터를 API 백엔드 서버에서 받아오는 함수
  * @returns {Promise<any>} 진행률 데이터
  */

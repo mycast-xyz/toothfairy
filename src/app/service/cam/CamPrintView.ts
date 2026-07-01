@@ -13,6 +13,7 @@ import {
 	downloadCamFileById,
 	downloadCamFilesAsZip,
 	completeCamFileById,
+	deleteCamFileById,
 	fetchCamProgressFromApi,
 	fetchCamPrintListFromApi,
 	type CamFilterParams
@@ -495,6 +496,18 @@ export class CamPrintViewService {
 		} catch (error: any) {
 			console.error('❌ CAM 작업 완료 처리 실패:', error);
 			toastStore.error(error?.message || 'CAM 작업 완료 처리에 실패했습니다.');
+		}
+	}
+
+	// 잘못 들어온 항목 삭제(소프트 삭제 → 목록에서 숨김)
+	async deleteFile(fileId: string) {
+		try {
+			await deleteCamFileById(fileId);
+			this.refreshFromDB();
+			toastStore.success('항목을 삭제했습니다.');
+		} catch (error: any) {
+			console.error('❌ CAM 항목 삭제 실패:', error);
+			toastStore.error(error?.message || '항목 삭제에 실패했습니다.');
 		}
 	}
 
