@@ -498,15 +498,6 @@ export class CamPrintViewService {
 		}
 	}
 
-	stopPrintJob(jobId: string) {
-		try {
-			camSocketService.stopPrintJob(jobId);
-			toastStore.warning('CAM 출력 작업이 중지되었습니다.');
-		} catch (error) {
-			console.error('❌ CAM 출력 작업 중지 실패:', error);
-			toastStore.error('CAM 출력 작업 중지에 실패했습니다.');
-		}
-	}
 
 	// 파일 다운로드
 	async downloadFile(fileId: string) {

@@ -216,10 +216,6 @@
 		await camPrintViewService.startPrintJob(fileId);
 	}
 
-	function stopPrintJob(jobId: string) {
-		camPrintViewService.stopPrintJob(jobId);
-	}
-
 	async function downloadFile(fileId: string) {
 		await camPrintViewService.downloadFile(fileId);
 	}
@@ -683,13 +679,6 @@
 													class="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
 												>
 													가공완료 처리
-												</button>
-											{:else if item.status === 'completed'}
-												<button
-													onclick={() => stopPrintJob(item.id)}
-													class="rounded bg-red-500 px-3 py-1 text-xs text-white hover:bg-red-600"
-												>
-													취소
 												</button>
 											{:else}
 												-

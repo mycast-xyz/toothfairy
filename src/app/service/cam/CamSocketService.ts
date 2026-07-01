@@ -713,23 +713,6 @@ class CamSocketService {
 		}
 	}
 
-	// 출력물 작업 중지 요청
-	stopPrintJob(jobId: string) {
-		if (this.socket?.connected) {
-			const commandData = {
-				channel: 'cam/print',
-				data: {
-					action: 'stopPrint',
-					jobId
-				}
-			};
-
-			this.socket.emit('command', commandData);
-		} else {
-			console.warn('⚠️ 소켓이 연결되지 않아 작업 중지 요청을 보낼 수 없습니다.');
-		}
-	}
-
 	// 통합 폴더 모니터링 시작 요청
 	startUnifiedFolderMonitor() {
 		if (this.socket?.connected) {
