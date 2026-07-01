@@ -7,6 +7,7 @@ import { configService } from './app/service/ConfigService';
 // 사용자 정보를 위한 타입 정의
 type User = {
 	id?: string;
+	uuid?: string;
 	role?: string;
 	// name 필드는 JWT에 없으므로 제거
 };
@@ -122,17 +123,20 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// 4. 페이지 접근 제어
 	const { pathname } = event.url;
-	const publicRoutes = ['/login', '/register']; // 공개 경로 목록
+	// 공개 경로: 로그인/회원가입(/login, /login/create, /login/password 등)·회원가입(/register)
+	const isPublicRoute =
+		pathname === '/login' || pathname.startsWith('/login/') || pathname === '/register';
 
 	// 로그인 상태가 아닌데 보호된 페이지에 접근하려 할 때
 	// @ts-expect-error - Locals 타입 확장 필요
-	if (!event.locals.user && !publicRoutes.includes(pathname)) {
+	if (!event.locals.user && !isPublicRoute) {
 		throw redirect(303, '/login');
 	}
 
 	// 5. 권한 기반 페이지 접근 제어 (메인 페이지는 제외)
 	// @ts-expect-error - Locals 타입 확장 필요
-	if (event.locals.user && !publicRoutes.includes(pathname) && pathname !== '/') {
+	if (event.locals.user && !isPublicRoute && pathname !== '/') {
+		// @ts-expect-error - Locals 타입 확장 필요
 		const userRole = event.locals.user.role as UserRole;
 
 		// 페이지 접근 권한 확인
@@ -361,7 +365,7 @@ async function refreshAccessToken(
 			httpOnly: true,
 			secure: false,
 			sameSite: 'strict',
-			maxAge: 30 //* 15 // 15분
+			maxAge: 60 * 15 // 15분
 		});
 		console.log('userInfo 쿠키 업데이트 완료:', userInfo);
 

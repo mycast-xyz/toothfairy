@@ -134,7 +134,7 @@ export const actions: Actions = {
 				httpOnly: true,
 				secure: false, // 개발 환경에서는 false로 설정
 				sameSite: 'strict',
-				maxAge: 30 //* 15 // 15분
+				maxAge: 60 * 15 // 15분
 			});
 		} catch (error) {
 			console.error('JWT에서 사용자 정보 추출 오류:', error);
