@@ -1,6 +1,12 @@
 # 기획안 04 — 기공센터 파우더(분말) 관리 페이지
 
-> 작성 2026-07-01 · 상태: **기획(미구현)**
+> 작성 2026-07-01 · 상태: **Phase 1 구현 완료 / Phase 2 대기**
+>
+> **Phase 1 완료(2026-07-01, 커밋 프론트 `6965365`·백엔드 `ea4d1a5`)**: 골격 + 센터 유닛 자동 연동(읽기).
+> - 백엔드 `GET /api/v0/powder/units?date=YYYY-MM`(인증) — `centerStlList`를 일자+종류로 집계 → 스트림(capPartial/allonfour) 일자별 유닛(정상+리메이크, 커스텀 제외).
+> - 프론트 `/center/powder` — 월선택 + 일자별 유닛 테이블(다크모드) + 사이드바 메뉴(MENU_PERMISSIONS).
+> - 검증: 6월 21일치, 월합계 캡파샬 1433·올온포 3.
+> - **Phase 2 착수 전 필요**: **A-3 통 용량(g)** 값(소모량 계산의 전제) + A-1(커스텀 제외)·A-2(정상+리메이크) 확정.
 > 요청: 기공센터에 "청구서 관리처럼 테이블" 형태의 파우더 관리 페이지 신설. 매일 파우더 남은 량을 입력하면 전날 대비 **소모량**과 **출력 유닛당 파우더 사용량**을 산출해 보여준다.
 > 관련: 유닛 집계 엔진 [`InvoiceCommonService`](../../src/app/service/invoice/InvoiceCommonService.ts), 참고 화면 [`setting/invoice`](../../src/routes/setting/invoice/+page.svelte), 센터 QA [`03-center-qa-and-improvements.md`](./03-center-qa-and-improvements.md).
 
