@@ -83,7 +83,16 @@ class UserApiService {
 
 		// 요청 인터셉터
 		api.interceptors.request.use(
-			(config) => {
+			async (config) => {
+				// 인증 토큰 첨부.
+				// 토큰은 localStorage 에 보관되며 서버는 쿠키를 설정하지 않는다.
+				// 이 헤더가 없으면 사용자관리 API 가 '액세스 토큰이 없습니다' 로 실패한다.
+				const token = await authService.getJwtToken();
+				if (token) {
+					config.headers = config.headers || {};
+					config.headers['Authorization'] = `Bearer ${token}`;
+				}
+
 				// 요청 전 로깅 (개발 환경에서만)
 				if (import.meta.env.DEV) {
 					console.log(
