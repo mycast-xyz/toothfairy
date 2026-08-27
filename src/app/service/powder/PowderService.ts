@@ -12,7 +12,12 @@ export interface PowderRecord {
 	powderType: PowderStream;
 	date: string; // YYYY-MM-DD
 	remainingAmt: number | string;
-	refillBottles: number;
+	/** 직접 보충량(g) */
+	refillAmt: number | string;
+	/** 다른 스트림으로 보낸 양(g). 캡에서 파샬+올온포로 보낼 때 사용 */
+	transferOutAmt: number | string;
+	/** 다른 스트림에서 받은 양(g). 파샬+올온포가 캡에서 받을 때 사용 */
+	transferInAmt: number | string;
 }
 
 export interface PowderListData {
@@ -57,17 +62,26 @@ export async function fetchPowderList(date: string): Promise<PowderListData> {
 	};
 }
 
-/** 일자 기록(남은량/보충) 저장 */
+/** 일자 기록(남은량/보충/이동) 저장. 보충·이동 모두 g 단위 */
 export async function savePowderRecord(
 	powderType: PowderStream,
 	recordDate: string,
 	remainingAmt: number,
-	refillBottles: number
+	refillAmt: number,
+	transferOutAmt: number,
+	transferInAmt: number
 ): Promise<void> {
 	const url = `${backendUrl()}/api/v0/powder/record`;
 	const res = await axios.post(
 		url,
-		{ powderType, recordDate, remainingAmt, refillBottles },
+		{
+			powderType,
+			recordDate,
+			remainingAmt,
+			refillAmt,
+			transferOutAmt,
+			transferInAmt
+		},
 		{ withCredentials: true, headers: await authHeaders() }
 	);
 	if (res.data?.status !== 'ok') {

@@ -26,7 +26,12 @@
 	interface Cell {
 		units: number;
 		remaining: number | null;
+		/** 직접 보충량(g) */
 		refill: number;
+		/** 파샬+올온포로 보낸 양(g). 캡에서만 사용 */
+		transferOut: number;
+		/** 캡에서 받은 양(g). 파샬+올온포에서만 사용 */
+		transferIn: number;
 	}
 	interface Row {
 		date: string;
@@ -52,21 +57,35 @@
 			for (const d of days) {
 				byDate[d.date] = {
 					date: d.date,
-					cap: { units: d.capUnits, remaining: null, refill: 0 },
-					pa: { units: d.partialAllonfourUnits, remaining: null, refill: 0 }
+					cap: {
+						units: d.capUnits,
+						remaining: null,
+						refill: 0,
+						transferOut: 0,
+						transferIn: 0
+					},
+					pa: {
+						units: d.partialAllonfourUnits,
+						remaining: null,
+						refill: 0,
+						transferOut: 0,
+						transferIn: 0
+					}
 				};
 			}
 			for (const r of records) {
 				if (!byDate[r.date]) {
 					byDate[r.date] = {
 						date: r.date,
-						cap: { units: 0, remaining: null, refill: 0 },
-						pa: { units: 0, remaining: null, refill: 0 }
+						cap: { units: 0, remaining: null, refill: 0, transferOut: 0, transferIn: 0 },
+						pa: { units: 0, remaining: null, refill: 0, transferOut: 0, transferIn: 0 }
 					};
 				}
 				const cell = r.powderType === 'cap' ? byDate[r.date].cap : byDate[r.date].pa;
 				cell.remaining = Number(r.remainingAmt);
-				cell.refill = Number(r.refillBottles);
+				cell.refill = Number(r.refillAmt) || 0;
+				cell.transferOut = Number(r.transferOutAmt) || 0;
+				cell.transferIn = Number(r.transferInAmt) || 0;
 			}
 			rows = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 		} catch (e) {
@@ -89,9 +108,13 @@
 		loadData();
 	}
 
-	// 소모량/유닛당 계산(rows + 통용량 의존). 직전 '남은량 기록 있는' 행 기준.
+	// 소모량/유닛당 계산. 직전 '남은량 기록 있는' 행 기준. 보충·이동 모두 g 단위.
+	//   캡  소모량 = 직전 남은량 + 직접보충 − 파샬로 보낸 양 − 오늘 남은량
+	//   파샬 소모량 = 직전 남은량 + 직접보충 + 캡에서 받은 양 − 오늘 남은량
+	// 파샬+올온포는 캡에서 파우더를 옮겨 쓰므로, 이동분을 캡에서 빼주지 않으면
+	// 캡 소모량이 과대 계상되어 유닛당 사용량이 실제보다 높게 나온다.
 	$: computed = rows.map((row, i) => {
-		const calc = (key: 'cap' | 'pa', cap: number) => {
+		const calc = (key: 'cap' | 'pa') => {
 			const cur = row[key];
 			if (cur.remaining == null) return { c: null as number | null, pu: null as number | null };
 			let prev: Cell | null = null;
@@ -102,15 +125,23 @@
 				}
 			}
 			if (!prev) return { c: null, pu: null }; // 첫 기록일: 기준값
-			const c = (prev.remaining as number) + (cur.refill || 0) * cap - cur.remaining;
+			const c =
+				(prev.remaining as number) +
+				(cur.refill || 0) +
+				(cur.transferIn || 0) -
+				(cur.transferOut || 0) -
+				cur.remaining;
 			const pu = cur.units > 0 ? c / cur.units : null;
 			return { c, pu };
 		};
-		return { cap: calc('cap', capCap), pa: calc('pa', capPa) };
+		return { cap: calc('cap'), pa: calc('pa') };
 	});
 
-	const fmtG = (v: number | null) =>
-		v == null ? '—' : `${Math.round(v).toLocaleString()}g`;
+	// 이동량 대조: 같은 날 '캡이 보낸 양' 과 '파샬이 받은 양' 이 어긋나면 표시한다.
+	$: transferMismatch = rows.map((row) => (row.cap.transferOut || 0) !== (row.pa.transferIn || 0));
+	$: mismatchCount = transferMismatch.filter(Boolean).length;
+
+	const fmtG = (v: number | null) => (v == null ? '—' : `${Math.round(v).toLocaleString()}g`);
 	const fmtPer = (v: number | null) => (v == null ? '—' : v.toFixed(1));
 
 	async function onEdit(i: number, key: 'cap' | 'pa') {
@@ -122,7 +153,9 @@
 				powderType,
 				rows[i].date,
 				Number(cell.remaining) || 0,
-				Number(cell.refill) || 0
+				Number(cell.refill) || 0,
+				Number(cell.transferOut) || 0,
+				Number(cell.transferIn) || 0
 			);
 		} catch (e: any) {
 			toastStore.error(e?.message || '저장에 실패했습니다.');
@@ -202,24 +235,35 @@
 			<table class="min-w-full text-sm">
 				<thead>
 					<tr class="text-gray-500 dark:text-gray-400">
-						<th rowspan="2" class="border-b border-gray-200 px-3 py-2 text-left dark:border-gray-700"
-							>날짜</th
+						<th
+							rowspan="2"
+							class="border-b border-gray-200 px-3 py-2 text-left dark:border-gray-700">날짜</th
 						>
-						<th colspan="5" class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
+						<th
+							colspan="6"
+							class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
 							>캡 파우더</th
 						>
-						<th colspan="5" class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
+						<th
+							colspan="6"
+							class="border-b border-l border-gray-200 px-3 py-2 text-center dark:border-gray-700"
 							>올온포·파샬 파우더</th
 						>
 					</tr>
 					<tr class="text-xs text-gray-400">
-						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700">남은량(g)</th>
-						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(통)</th>
+						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700"
+							>남은량(g)</th
+						>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(g)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">파샬로 보냄(g)</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">소모량</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">유닛</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">g/유닛</th>
-						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700">남은량(g)</th>
-						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(통)</th>
+						<th class="border-b border-l border-gray-200 px-2 py-1 dark:border-gray-700"
+							>남은량(g)</th
+						>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">보충(g)</th>
+						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">캡에서 받음(g)</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">소모량</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">유닛</th>
 						<th class="border-b border-gray-200 px-2 py-1 dark:border-gray-700">g/유닛</th>
@@ -227,12 +271,14 @@
 				</thead>
 				<tbody class="divide-y divide-gray-100 dark:divide-gray-700">
 					{#if loading}
-						<tr><td colspan="11" class="px-3 py-10 text-center text-gray-500">불러오는 중...</td></tr>
+						<tr
+							><td colspan="13" class="px-3 py-10 text-center text-gray-500">불러오는 중...</td></tr
+						>
 					{:else if error}
-						<tr><td colspan="11" class="px-3 py-10 text-center text-red-600">{error}</td></tr>
+						<tr><td colspan="13" class="px-3 py-10 text-center text-red-600">{error}</td></tr>
 					{:else if rows.length === 0}
 						<tr
-							><td colspan="11" class="px-3 py-10 text-center text-gray-500"
+							><td colspan="13" class="px-3 py-10 text-center text-gray-500"
 								>해당 월 데이터가 없습니다.</td
 							></tr
 						>
@@ -256,7 +302,20 @@
 										type="number"
 										bind:value={rows[i].cap.refill}
 										onchange={() => onEdit(i, 'cap')}
-										class="w-14 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+										class="w-20 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-1 py-1">
+									<input
+										type="number"
+										bind:value={rows[i].cap.transferOut}
+										onchange={() => onEdit(i, 'cap')}
+										title="파샬+올온포로 옮긴 양(g)"
+										class="w-20 rounded border px-1 py-0.5 text-right dark:bg-gray-700 {transferMismatch[
+											i
+										]
+											? 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/30'
+											: 'border-gray-200 dark:border-gray-600'}"
 									/>
 								</td>
 								<td class="px-2 py-1.5 text-right">{fmtG(computed[i].cap.c)}</td>
@@ -276,7 +335,20 @@
 										type="number"
 										bind:value={rows[i].pa.refill}
 										onchange={() => onEdit(i, 'pa')}
-										class="w-14 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+										class="w-20 rounded border border-gray-200 px-1 py-0.5 text-right dark:border-gray-600 dark:bg-gray-700"
+									/>
+								</td>
+								<td class="px-1 py-1">
+									<input
+										type="number"
+										bind:value={rows[i].pa.transferIn}
+										onchange={() => onEdit(i, 'pa')}
+										title="캡에서 받은 양(g)"
+										class="w-20 rounded border px-1 py-0.5 text-right dark:bg-gray-700 {transferMismatch[
+											i
+										]
+											? 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/30'
+											: 'border-gray-200 dark:border-gray-600'}"
 									/>
 								</td>
 								<td class="px-2 py-1.5 text-right">{fmtG(computed[i].pa.c)}</td>
@@ -289,8 +361,18 @@
 			</table>
 		</div>
 
+		{#if mismatchCount > 0}
+			<p
+				class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+			>
+				⚠ 캡이 보낸 양과 파샬+올온포가 받은 양이 다른 날이 {mismatchCount}일 있습니다. 표시된 칸을
+				확인해주세요.
+			</p>
+		{/if}
 		<p class="mt-3 text-xs text-gray-400">
-			※ 소모량 = 전날 남은량 + (보충 통수 × 통 용량) − 오늘 남은량. 첫 기록일·유닛 0인 날은 계산 불가(—).
+			※ 캡 소모량 = 전날 남은량 + 보충(g) − 파샬로 보낸 양(g) − 오늘 남은량<br />
+			※ 파샬+올온포 소모량 = 전날 남은량 + 보충(g) + 캡에서 받은 양(g) − 오늘 남은량<br />
+			※ 첫 기록일·유닛 0인 날은 계산 불가(—). 유닛은 센터 출력물의 정상+리메이크 합계이며, 커스텀은 제외됩니다.
 		</p>
 	</div>
 </main>
