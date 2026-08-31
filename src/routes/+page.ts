@@ -1,11 +1,14 @@
 import { browser } from '$app/environment';
 import type { PageLoad } from './$types';
-import axios from 'axios';
 // 유틸
 import { MobileUtils } from '../utils/mobile/MobileUtils';
 
-// 캐릭터 목록 서비스
-export const load: PageLoad = async ({ url, data }) => {
+export const load: PageLoad = async ({ url, parent }) => {
+	// 사용자 정보는 레이아웃(+layout.server.ts → +layout.ts)에서 내려온다.
+	// 예전에는 `data?.user` 를 읽었는데, 이 라우트에는 +page.server.ts 가 없어
+	// `data` 가 항상 null 이었다. 그 결과 `user: undefined` 가 페이지 데이터로
+	// 병합되면서 레이아웃이 내려준 user 를 덮어써 버렸다.
+	const parentData = await parent();
 	const currentUrl = 'http://' + url.hostname + ':3000';
 	let isMobile = false;
 
@@ -13,15 +16,10 @@ export const load: PageLoad = async ({ url, data }) => {
 		isMobile = MobileUtils.isMobile();
 	}
 
-	// 사용자 정보가 없으면 경고
-	if (!data?.user) {
-		console.warn('메인 페이지: 사용자 정보가 없습니다!');
-	}
-
 	return {
 		url: currentUrl,
 		isMobile: isMobile,
-		info: data || {},
-		user: data?.user
+		info: parentData,
+		user: parentData?.user
 	};
 };

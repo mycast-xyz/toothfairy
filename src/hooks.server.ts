@@ -8,9 +8,21 @@ import { configService } from './app/service/ConfigService';
 type User = {
 	id?: string;
 	uuid?: string;
+	name?: string;
 	role?: string;
-	// name 필드는 JWT에 없으므로 제거
 };
+
+/**
+ * JWT 페이로드 디코딩 (base64url + UTF-8 안전).
+ * atob() 만 쓰면 '-','_' 가 섞인 페이로드에서 예외가 나고, 한글 이름이 깨진다.
+ */
+function decodeJwtPayload(token: string): any {
+	const part = token.split('.')[1];
+	const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+	const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+	const bytes = Uint8Array.from(atob(padded), (c) => c.charCodeAt(0));
+	return JSON.parse(new TextDecoder().decode(bytes));
+}
 
 // SvelteKit Locals 타입 확장 (tsconfig의 app.d.ts에서 확장하는 것이 정석이지만, 여기선 주석으로 안내)
 // declare module '@sveltejs/kit' {
@@ -51,8 +63,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		try {
 			// 2. Access Token이 유효한지 확인합니다.
 			// JWT 페이로드를 직접 디코딩
-			const payloadPart = accessToken.split('.')[1];
-			const decoded = JSON.parse(atob(payloadPart));
+			const decoded = decodeJwtPayload(accessToken);
 
 			// 테스트 로그: Access Token 디코딩 값 출력
 			console.log('🔍 Access Token 디코딩 테스트:');
@@ -93,12 +104,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 					}
 				}
 
-				// 기본값 설정
-				userId = userId || 'unknown';
-				userRole = userRole || 'user';
-
-				// @ts-expect-error - Locals 타입 확장 필요
-				event.locals.user = { id: userId, uuid: userUuid, role: userRole };
+				// role 을 확인할 수 없으면 'user' 로 강등하지 않고 미인증으로 둔다.
+				// 조용한 강등은 all_admin 이 일반 사용자 화면을 보게 되는 원인이었다.
+				if (userRole) {
+					// @ts-expect-error - Locals 타입 확장 필요
+					event.locals.user = {
+						id: userId || 'unknown',
+						uuid: userUuid,
+						name: decoded.name,
+						role: userRole
+					};
+				} else {
+					console.error('Access Token 에 role 정보가 없습니다. 재인증이 필요합니다.');
+				}
 			} else {
 				// 2-2. 만료되었다면 토큰 갱신을 시도합니다.
 				console.log('Access Token 만료, 갱신을 시도합니다.');
@@ -169,8 +187,7 @@ async function refreshAccessToken(
 	// 기존 Refresh Token 디코딩해서 확인
 	try {
 		console.log('=== 토큰 갱신 - 기존 Refresh Token 디코딩 ===');
-		const refreshPayloadPart = refreshToken.split('.')[1];
-		const refreshDecoded = JSON.parse(atob(refreshPayloadPart));
+		const refreshDecoded = decodeJwtPayload(refreshToken);
 		console.log('기존 Refresh Token 내용:', refreshDecoded);
 		console.log('기존 Refresh Token userRole:', refreshDecoded.userRole);
 		console.log('기존 Refresh Token role:', refreshDecoded.role);
@@ -350,8 +367,11 @@ async function refreshAccessToken(
 			}
 		}
 
-		// 기본값 설정
-		userRole = userRole || 'user';
+		// 여기서도 'user' 로의 조용한 강등은 하지 않는다. role 을 못 찾으면 재로그인.
+		if (!userRole) {
+			console.error('갱신된 토큰에서 role 을 찾지 못했습니다. 재인증이 필요합니다.');
+			return null;
+		}
 
 		// userInfo 쿠키도 업데이트
 		const userInfo = {
@@ -369,7 +389,7 @@ async function refreshAccessToken(
 		});
 		console.log('userInfo 쿠키 업데이트 완료:', userInfo);
 
-		return { id: userId, uuid: userUuid, role: userRole };
+		return { id: userId, uuid: userUuid, name: decoded.name, role: userRole };
 	} catch (error) {
 		console.error('💥 토큰 갱신 중 네트워크 또는 기타 오류 발생:', error);
 		return null;

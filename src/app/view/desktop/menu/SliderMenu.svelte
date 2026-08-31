@@ -10,9 +10,11 @@
 	const { data } = $props<{ data: any }>();
 
 	// 사용자 권한에 따른 메뉴 필터링
-	const userRole: UserRole = data?.user?.role || 'user';
-	const filteredMenus = getFilteredMenus(userRole);
-	const groupedMenus = groupMenusBySection(filteredMenus);
+	// $derived 로 두어야 레이아웃 데이터가 갱신될 때 메뉴도 같이 갱신된다.
+	// (const 로 고정하면 최초 렌더 시점의 권한에 메뉴가 묶여버린다.)
+	const userRole = $derived(data?.user?.role as UserRole);
+	const filteredMenus = $derived(getFilteredMenus(userRole));
+	const groupedMenus = $derived(groupMenusBySection(filteredMenus));
 
 	/*
 	import { AdminSideMenuService } from '../../service/AdminSiedMenuService';
