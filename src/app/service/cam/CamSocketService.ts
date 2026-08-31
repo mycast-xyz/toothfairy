@@ -602,13 +602,10 @@ class CamSocketService {
 			}
 
 			// JWT 토큰 재갱신 시도.
-			// 1순위: getJwtToken() — /api/auth/token(SvelteKit) 요청이 hooks.server.ts를 거치며
-			//        만료된 access_token을 refresh_token으로 갱신 → 갱신된 토큰 반환(앱의 실제 복구 경로).
-			// 2순위: refreshJwtToken() — 백엔드 직접 리프레시(폴백).
-			let newToken = await authService.getJwtToken();
-			if (!newToken) {
-				newToken = await authService.refreshJwtToken();
-			}
+			// getJwtToken() — /api/auth/token(SvelteKit) 요청이 hooks.server.ts를 거치며
+			// 만료된 access_token을 refresh_token으로 갱신 → 갱신된 토큰 반환(앱의 실제 복구 경로).
+			// (폴백이던 refreshJwtToken() 은 백엔드 요청 형식이 맞지 않아 항상 실패했으므로 제거)
+			const newToken = await authService.getJwtToken();
 
 			if (newToken) {
 				console.log('✅ JWT 토큰 재갱신 성공 - 소켓 재연결 시도');

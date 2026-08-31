@@ -142,8 +142,11 @@ class UserApiService {
 					console.log('🔐 UserApiService: 토큰 만료 감지 - JWT 토큰 재갱신 시도');
 
 					try {
-						// JWT 토큰 재갱신 시도
-						const newToken = await authService.refreshJwtToken();
+						// JWT 토큰 재갱신 시도.
+						// getJwtToken() 은 SvelteKit 의 /api/auth/token 을 호출하고, 그 요청이
+						// hooks.server.ts 를 거치며 만료된 access_token 을 refresh_token 으로
+						// 갱신한다. 즉 이게 앱의 실제 복구 경로다.
+						const newToken = await authService.getJwtToken();
 
 						if (newToken) {
 							console.log('✅ UserApiService: JWT 토큰 재갱신 성공 - 원본 요청 재시도');

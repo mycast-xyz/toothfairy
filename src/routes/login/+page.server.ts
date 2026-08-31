@@ -106,7 +106,7 @@ export const actions: Actions = {
 				sameSite: (refreshTokenConfig?.sameSite as 'strict' | 'lax' | 'none') || 'strict',
 				maxAge: refreshTokenConfig?.maxAge
 					? Math.floor(refreshTokenConfig.maxAge / 1000)
-					: 60 * 60 * 24 * 7 // 설정값을 초 단위로 변환
+					: 60 * 60 * 24 // refresh JWT 수명(1일)과 일치
 			});
 		} else {
 			console.error('Refresh Token이 없습니다!');

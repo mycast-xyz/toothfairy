@@ -138,14 +138,14 @@
 				"httpOnly": true,
 				"secure": false,
 				"sameSite": "lax",
-				"maxAge": 3600000
+				"maxAge": 900000
 			},
 			"refreshToken": {
 				"name": "refresh_token",
 				"httpOnly": true,
 				"secure": false,
 				"sameSite": "lax",
-				"maxAge": 604800000
+				"maxAge": 86400000
 			}
 		}
 	},

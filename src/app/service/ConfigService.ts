@@ -365,20 +365,23 @@ class ConfigService {
 					origin: ['http://localhost:5173', 'http://localhost:3000'],
 					credentials: true
 				},
+				// 쿠키 수명은 JWT 수명과 일치시킨다.
+				// 쿠키가 더 오래 살면 이미 죽은 토큰으로 계속 갱신을 시도하게 된다.
+				// (access 15분 / refresh 1일 — 백엔드 JsonWebToken.ts 기준)
 				cookies: {
 					accessToken: {
 						name: 'access_token',
 						httpOnly: true,
 						secure: false,
 						sameSite: 'lax',
-						maxAge: 3600000
+						maxAge: 900000
 					},
 					refreshToken: {
 						name: 'refresh_token',
 						httpOnly: true,
 						secure: false,
 						sameSite: 'lax',
-						maxAge: 604800000
+						maxAge: 86400000
 					}
 				}
 			},

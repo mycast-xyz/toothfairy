@@ -142,8 +142,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// 4. 페이지 접근 제어
 	const { pathname } = event.url;
 	// 공개 경로: 로그인/회원가입(/login, /login/create, /login/password 등)·회원가입(/register)
+	// /logout 은 쿠키를 지우는 것이 전부라 권한 판정 대상이 아니다.
+	// (메뉴 표에 없는 경로라 제외하지 않으면 all_admin 이 아닌 사용자는 '/' 로 튕겨 로그아웃이 불가능하다.)
 	const isPublicRoute =
-		pathname === '/login' || pathname.startsWith('/login/') || pathname === '/register';
+		pathname === '/login' ||
+		pathname.startsWith('/login/') ||
+		pathname === '/register' ||
+		pathname === '/logout';
 
 	// 로그인 상태가 아닌데 보호된 페이지에 접근하려 할 때
 	// @ts-expect-error - Locals 타입 확장 필요
@@ -312,7 +317,7 @@ async function refreshAccessToken(
 				sameSite: (refreshTokenConfig?.sameSite as 'strict' | 'lax' | 'none') || 'strict',
 				maxAge: refreshTokenConfig?.maxAge
 					? Math.floor(refreshTokenConfig.maxAge / 1000)
-					: 60 * 60 * 24 * 7 // 설정값을 초 단위로 변환
+					: 60 * 60 * 24 // refresh JWT 수명(1일)과 일치
 			});
 			console.log('새 Refresh Token 저장 완료:', `${newRefreshToken.substring(0, 20)}...`);
 		} else {

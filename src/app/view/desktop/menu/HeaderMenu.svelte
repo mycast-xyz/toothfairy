@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
-	import { authTokenService } from '../../../service/auth/AuthTokenService';
 	import { authService } from '../../../service/auth/AuthService';
 	import { jwtDecode } from 'jwt-decode';
 	import { onMount } from 'svelte';
@@ -12,15 +11,8 @@
 	let userEmail = $state('user@example.com');
 
 	onMount(async () => {
-		let token = authTokenService.getToken();
-
-		// 토큰이 없으면 API를 통해 가져오기 시도 (HttpOnly 쿠키 사용 시)
-		if (!token) {
-			token = await authService.getJwtToken();
-			if (token) {
-				authTokenService.setToken(token);
-			}
-		}
+		// 토큰은 httpOnly 쿠키에 있으므로 서버 엔드포인트를 통해 조회한다.
+		const token = await authService.getJwtToken();
 
 		if (token) {
 			try {
@@ -148,11 +140,13 @@
 								>
 							</li>
 							<li>
-								<a
-									href="#"
-									class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
-									role="menuitem">Sign out</a
-								>
+								<form method="POST" action="/logout">
+									<button
+										type="submit"
+										class="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white"
+										role="menuitem">Sign out</button
+									>
+								</form>
 							</li>
 						</ul>
 					</div>

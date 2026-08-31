@@ -34,39 +34,10 @@ class AuthService {
 		}
 	}
 
-	// JWT 토큰 재갱신
-	public async refreshJwtToken(): Promise<string | null> {
-		try {
-			// 설정에서 refresh 토큰 쿠키 정보 가져오기
-			const refreshEndpoint = configService.getApiEndpoint('auth', 'refresh');
-			if (!refreshEndpoint) {
-				console.error('❌ 리프레시 엔드포인트 설정이 없습니다.');
-				return null;
-			}
-
-			const backendBaseUrl = configService.getBackendUrl();
-			const fullUrl = `${backendBaseUrl}${refreshEndpoint}`;
-
-			const response = await axios.post(
-				fullUrl,
-				{},
-				{
-					withCredentials: true
-				}
-			);
-
-			if (response.status === 200 && response.data.success && response.data.token) {
-				console.log('✅ JWT 토큰 재갱신 성공');
-				return response.data.token;
-			}
-
-			console.log('❌ JWT 토큰 재갱신 실패:', response.status);
-			return null;
-		} catch (error) {
-			console.error('❌ JWT 토큰 재갱신 중 오류:', error);
-			return null;
-		}
-	}
+	// 토큰 재갱신은 서버(hooks.server.ts)가 담당한다.
+	// 여기 있던 refreshJwtToken() 은 body 없이 POST 해서 백엔드가 항상 401 을 주고,
+	// 응답도 {success, token} 으로 검사하는데 백엔드는 {resultCode, accessToken,
+	// refreshToken} 을 주기 때문에 성공해도 실패로 처리되던 죽은 코드였다.
 }
 
 export const authService = new AuthService();
