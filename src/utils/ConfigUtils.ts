@@ -1,4 +1,4 @@
-import { configService, getBackendUrl, getSocketUrl } from '../app/service/ConfigService';
+import { configService, getBackendUrl, getSocketUrl, resolveUrl } from '../app/service/ConfigService';
 
 /**
  * 현재 환경에 맞는 백엔드 URL을 반환합니다.
@@ -19,7 +19,7 @@ export function getCurrentBackendUrl(hostname?: string): string {
 	if (hostname) {
 		return `http://${hostname}:3000`;
 	}
-	return 'http://localhost:3000';
+	return resolveUrl('http://localhost:3000');
 }
 
 /**
@@ -32,7 +32,7 @@ export function getCurrentSocketUrl(): string {
 		console.warn('ConfigService에서 소켓 URL을 가져올 수 없어 기본값을 사용합니다:', error);
 	}
 
-	return 'ws://localhost:30090';
+	return resolveUrl('ws://localhost:30090');
 }
 
 /**

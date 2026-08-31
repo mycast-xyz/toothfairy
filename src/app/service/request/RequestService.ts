@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { configService } from '../ConfigService';
+import { configService, resolveUrl } from '../ConfigService';
 import { authService } from '../auth/AuthService';
 
 // 요청 필터 파라미터 타입 정의
@@ -44,7 +44,7 @@ export class RequestService {
 			let endpoint = '';
 			if (!config) {
 				console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
-				endpoint = 'http://localhost:3000/api/v0/request';
+				endpoint = resolveUrl('http://localhost:3000') + '/api/v0/request';
 			} else {
 				const backendBaseUrl = config.server.backend.baseUrl;
 				const requestEndpoint = config.api.endpoints?.request || '/api/v0/request';
@@ -124,7 +124,7 @@ export class RequestService {
 
 			let endpoint = '';
 			if (!config) {
-				endpoint = `http://localhost:3000/api/request/${requestId}`;
+				endpoint = resolveUrl('http://localhost:3000') + `/api/request/${requestId}`;
 			} else {
 				const backendBaseUrl = config.server.backend.baseUrl;
 				endpoint = `${backendBaseUrl}/api/request/${requestId}`;
@@ -156,7 +156,7 @@ export class RequestService {
 
 			let endpoint = '';
 			if (!config) {
-				endpoint = `http://localhost:3000/api/request/${requestId}/status`;
+				endpoint = resolveUrl('http://localhost:3000') + `/api/request/${requestId}/status`;
 			} else {
 				const backendBaseUrl = config.server.backend.baseUrl;
 				endpoint = `${backendBaseUrl}/api/request/${requestId}/status`;

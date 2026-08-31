@@ -66,6 +66,47 @@ export interface BaseConfig {
 // 확장 가능한 설정 타입 (JSON 파일의 모든 속성을 허용)
 export type ApplicationConfig = BaseConfig & Record<string, any>;
 
+// 설정 파일에 기본값으로 박혀 있는 로컬 전용 호스트들
+const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '[::1]'];
+
+/**
+ * 브라우저가 실제로 접속한 hostname을 반환합니다.
+ * SSR 환경이거나 접속 호스트 자체가 로컬이면 null.
+ */
+function currentBrowserHost(): string | null {
+	if (typeof window === 'undefined') return null;
+	const host = window.location.hostname;
+	if (!host || LOOPBACK_HOSTS.includes(host)) return null;
+	return host;
+}
+
+/**
+ * 설정값의 host가 로컬 전용이면 브라우저가 접속한 호스트로 대체합니다.
+ * 로컬에서 열면 localhost 그대로, 외부(LAN IP·도메인)에서 열면 그 호스트를 그대로 사용합니다.
+ */
+export function resolveHost(host: string): string {
+	if (!host || !LOOPBACK_HOSTS.includes(host)) return host;
+	return currentBrowserHost() ?? host;
+}
+
+/**
+ * 'http://localhost:3000' 같은 절대 URL의 호스트 부분만 접속 호스트로 교체합니다.
+ * 파싱에 실패하면 원본을 그대로 돌려줍니다.
+ */
+export function resolveUrl(url: string): string {
+	if (!url) return url;
+	const browserHost = currentBrowserHost();
+	if (!browserHost) return url;
+	try {
+		const parsed = new URL(url);
+		if (!LOOPBACK_HOSTS.includes(parsed.hostname)) return url;
+		parsed.hostname = browserHost;
+		return parsed.toString().replace(/\/$/, '');
+	} catch {
+		return url;
+	}
+}
+
 // 설정 스토어
 export const configStore = writable<ApplicationConfig | null>(null);
 
@@ -122,16 +163,42 @@ class ConfigService {
 				console.log('서버 환경: 기본 설정 사용');
 			}
 
-			// 설정 스토어 업데이트
+			// 접속 호스트 기준으로 server.* 호스트 정규화 후 스토어 업데이트
+			this.config = this.normalizeServerHosts(this.config as ApplicationConfig);
 			configStore.set(this.config);
 
 			console.log(`설정 로드 완료 (환경: ${this.environment})`);
 			console.log('최종 API 엔드포인트:', this.config?.api?.endpoints?.company);
 		} catch (error) {
 			console.error('설정 로드 중 오류 발생:', error);
-			this.config = this.getDefaultConfig();
+			this.config = this.normalizeServerHosts(this.getDefaultConfig());
 			configStore.set(this.config);
 		}
+	}
+
+	/**
+	 * server.* 의 로컬 전용 호스트를 브라우저 접속 호스트로 재작성합니다.
+	 * 설정 파일을 서버 IP로 하드코딩하지 않아도 외부 접속이 동작하게 합니다.
+	 */
+	private normalizeServerHosts(config: ApplicationConfig): ApplicationConfig {
+		const browserHost = currentBrowserHost();
+		if (!browserHost || !config?.server) return config;
+
+		for (const key of Object.keys(config.server)) {
+			const entry = (config.server as any)[key];
+			if (!entry || typeof entry !== 'object') continue;
+			if (!LOOPBACK_HOSTS.includes(entry.host)) continue;
+
+			entry.host = browserHost;
+			if (entry.protocol && entry.port) {
+				entry.baseUrl = `${entry.protocol}://${browserHost}:${entry.port}`;
+			} else if (entry.baseUrl) {
+				entry.baseUrl = resolveUrl(entry.baseUrl);
+			}
+		}
+
+		console.log('서버 호스트 정규화 완료:', browserHost, config.server);
+		return config;
 	}
 
 	/**
@@ -379,14 +446,14 @@ class ConfigService {
 	 * 백엔드 서버 URL 반환
 	 */
 	getBackendUrl(): string {
-		return this.get('server.backend.baseUrl') || 'http://localhost:3000';
+		return resolveUrl(this.get('server.backend.baseUrl') || 'http://localhost:3000');
 	}
 
 	/**
 	 * 소켓 서버 URL 반환
 	 */
 	getSocketUrl(): string {
-		return this.get('server.socket.baseUrl') || 'ws://localhost:30090';
+		return resolveUrl(this.get('server.socket.baseUrl') || 'ws://localhost:30090');
 	}
 
 	/**

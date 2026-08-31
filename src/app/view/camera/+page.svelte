@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolveUrl } from '../../service/ConfigService';
 	import { onMount, onDestroy } from 'svelte';
 
 	let videoElement: HTMLVideoElement;
@@ -173,7 +174,7 @@
 		screenshotDataUrl = tempCanvas.toDataURL('image/png');
 
 		try {
-			const response = await fetch('http://localhost:3000/upload-screenshot', {
+			const response = await fetch(resolveUrl('http://localhost:3000') + '/upload-screenshot', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'

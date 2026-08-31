@@ -9,7 +9,7 @@
 	import { onMount } from 'svelte';
 	import { toastStore } from '../../../service/ToastService';
 	import { authService } from '../../../service/auth/AuthService';
-	import { configService } from '../../../service/ConfigService';
+	import { configService, resolveUrl } from '../../../service/ConfigService';
 
 	// props로 부모 컴포넌트의 nextStep, prevStep 함수를 받음
 	let { nextStep, prevStep } = $props<{ nextStep: () => void; prevStep: () => void }>();
@@ -138,7 +138,7 @@
 
 			// configService에서 백엔드 주소 가져오기
 			const config = configService.getConfig();
-			const baseUrl = config?.server?.backend?.baseUrl || 'http://localhost:3000';
+			const baseUrl = config?.server?.backend?.baseUrl || resolveUrl('http://localhost:3000');
 			const endpoint = '/api/v0/request/';
 			const url = `${baseUrl}${endpoint}`;
 

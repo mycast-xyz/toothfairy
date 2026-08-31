@@ -1,7 +1,7 @@
 // fetch 대신 axios 사용
 import axios from 'axios';
 // DB에서 최신 CAM 출력물 리스트를 API 백엔드 서버에서 받아오는 함수
-import { configService } from '../ConfigService';
+import { configService, resolveUrl } from '../ConfigService';
 import { authService } from '../auth/AuthService';
 
 // 필터 파라미터 타입 정의
@@ -27,7 +27,7 @@ export async function fetchCamPrintListFromApi(filterParams?: CamFilterParams) {
 		let endpoint = '';
 		if (!config) {
 			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
-			endpoint = 'http://localhost:3000/api/v0/cam/data/receipts';
+			endpoint = resolveUrl('http://localhost:3000') + '/api/v0/cam/data/receipts';
 		} else {
 			const backendBaseUrl = config.server.backend.baseUrl;
 			const camReceiptsEndpoint = config.api.endpoints.cam.data.receipts;
@@ -308,7 +308,7 @@ export async function fetchCamProgressFromApi() {
 		let endpoint = '';
 		if (!config) {
 			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
-			endpoint = 'http://localhost:3000/api/v0/cam/data/progress';
+			endpoint = resolveUrl('http://localhost:3000') + '/api/v0/cam/data/progress';
 		} else {
 			const backendBaseUrl = config.server.backend.baseUrl;
 			const camProgressEndpoint = config.api.endpoints.cam.progress;

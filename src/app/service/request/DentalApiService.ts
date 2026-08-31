@@ -2,7 +2,7 @@
  * 치과 API 서비스
  * 백엔드 서버에서 치과 리스트를 가져오는 서비스
  */
-import { configService } from '../ConfigService';
+import { configService, resolveUrl } from '../ConfigService';
 import { authService } from '../auth/AuthService';
 import axios from 'axios';
 
@@ -93,7 +93,7 @@ export class DentalApiService {
 				error
 			);
 			// 기본값으로 localhost 사용
-			return 'http://localhost:3000';
+			return resolveUrl('http://localhost:3000');
 		}
 	}
 

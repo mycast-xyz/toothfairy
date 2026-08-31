@@ -1,4 +1,4 @@
-import { configService } from '../ConfigService';
+import { configService, resolveUrl } from '../ConfigService';
 import { authService } from '../auth/AuthService';
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from 'axios';
 
@@ -70,7 +70,7 @@ class UserApiService {
 	 */
 	private createApiInstance(): AxiosInstance {
 		// 백엔드 서버 URL 가져오기
-		const backendUrl = configService.getBackendUrl() || 'http://localhost:3000';
+		const backendUrl = configService.getBackendUrl() || resolveUrl('http://localhost:3000');
 
 		const api = axios.create({
 			baseURL: backendUrl,

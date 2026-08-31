@@ -1,6 +1,6 @@
 import type { PageLoad } from './$types';
 import axios from 'axios';
-import { configService } from '../../../app/service/ConfigService';
+import { configService, resolveUrl } from '../../../app/service/ConfigService';
 
 export const load: PageLoad = async ({ data }) => {
 	// CAM Print 페이지 로드 - 사용자 정보 전달
@@ -19,7 +19,7 @@ export const load: PageLoad = async ({ data }) => {
 		if (!config || !configLoaded) {
 			console.warn('⚠️ 설정을 불러올 수 없어 기본 URL을 사용합니다.');
 			// 기본 URL 사용 (withCredentials: 인증 쿠키 전송 — receipts는 인증 필요)
-			const response = await axios.get('http://localhost:3000/api/v0/cam/data/receipts', {
+			const response = await axios.get(resolveUrl('http://localhost:3000') + '/api/v0/cam/data/receipts', {
 				withCredentials: true
 			});
 			if (response.status === 200) {

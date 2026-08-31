@@ -1,5 +1,5 @@
 import { writable, type Writable } from 'svelte/store';
-import { configService } from './ConfigService';
+import { configService, resolveUrl } from './ConfigService';
 import { authService } from './auth/AuthService';
 import axios from 'axios';
 
@@ -313,7 +313,7 @@ class SystemMonitoringService {
 
 		if (!baseUrl) {
 			console.log('⚠️ baseUrl이 없어서 localhost:3000 사용');
-			return 'http://localhost:3000';
+			return resolveUrl('http://localhost:3000');
 		}
 
 		try {
@@ -329,7 +329,7 @@ class SystemMonitoringService {
 		} catch (error) {
 			console.error('❌ URL 파싱 실패:', error);
 			console.log('🔄 localhost:3000으로 폴백');
-			return 'http://localhost:3000';
+			return resolveUrl('http://localhost:3000');
 		}
 	}
 

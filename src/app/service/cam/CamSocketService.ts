@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import { configService, getSocketUrl } from '../ConfigService';
+import { configService, getSocketUrl, resolveUrl } from '../ConfigService';
 import { fetchCamPrintListFromApi } from './CamDataService';
 import { authService } from '../auth/AuthService';
 
@@ -89,7 +89,7 @@ class CamSocketService {
 
 			// 소켓 URL이 없거나 잘못된 경우 기본값 사용
 			if (!socketUrl || socketUrl === 'undefined' || !socketUrl.startsWith('ws')) {
-				socketUrl = 'ws://localhost:30090';
+				socketUrl = resolveUrl('ws://localhost:30090');
 				console.warn('⚠️ 소켓 URL 설정 문제 - 기본값 사용:', socketUrl);
 			}
 
